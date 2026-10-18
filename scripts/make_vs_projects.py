@@ -26,7 +26,8 @@ PROJECTS = [
 
 POSTBUILD = (
     'xcopy "$(SolutionDir)extension" "$(OutDir)extension\\" /E /I /Y /Q &gt;nul\r\n'
-    'if exist "$(SolutionDir)packaging\\thirdparty\\yt-dlp.exe" xcopy "$(SolutionDir)packaging\\thirdparty\\*.exe" "$(OutDir)tools\\" /I /Y /Q &gt;nul\r\n'
+    'if exist "$(SolutionDir)packaging\\thirdparty\\ffmpeg.exe" xcopy "$(SolutionDir)packaging\\thirdparty\\*.exe" "$(OutDir)tools\\" /I /Y /Q &gt;nul\r\n'
+    'if exist "$(SolutionDir)packaging\\thirdparty\\yt-dlp" xcopy "$(SolutionDir)packaging\\thirdparty\\yt-dlp" "$(OutDir)tools\\yt-dlp\\" /E /I /Y /Q &gt;nul\r\n'
     'exit /b 0'
 )
 

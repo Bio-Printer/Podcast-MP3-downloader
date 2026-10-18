@@ -30,7 +30,8 @@ fi
 stage="dist/stage"
 rm -rf "$stage" && mkdir -p "$stage/tools" "$stage/licenses" "$stage/source"
 cp build/win/PodcastMP3.exe build/win/podcastmp3-host.exe "$stage/"
-cp packaging/thirdparty/yt-dlp.exe packaging/thirdparty/ffmpeg.exe packaging/thirdparty/deno.exe "$stage/tools/"
+cp packaging/thirdparty/ffmpeg.exe packaging/thirdparty/deno.exe "$stage/tools/"
+cp -r packaging/thirdparty/yt-dlp "$stage/tools/yt-dlp"
 cp -r extension "$stage/extension"
 cp packaging/thirdparty/ffmpeg-LICENSE.txt "$stage/licenses/ffmpeg-LICENSE.txt"
 cp packaging/thirdparty/yt-dlp-LICENSE.txt "$stage/licenses/yt-dlp-LICENSE.txt"
@@ -38,7 +39,7 @@ cp packaging/thirdparty/deno-LICENSE.txt "$stage/licenses/deno-LICENSE.txt"
 cp third_party/nlohmann/LICENSE.MIT "$stage/licenses/nlohmann-json-LICENSE.txt"
 cp LICENSE "$stage/licenses/PodcastMP3-LICENSE.txt"
 
-ytv="$(LANG=C.UTF-8 WINEDEBUG=-all wine packaging/thirdparty/yt-dlp.exe --version 2>/dev/null | tr -d '\r' || echo unknown)"
+ytv="$(LANG=C.UTF-8 WINEDEBUG=-all wine packaging/thirdparty/yt-dlp/yt-dlp.exe --version 2>/dev/null | tr -d '\r' || echo unknown)"
 ffv="$(LANG=C.UTF-8 WINEDEBUG=-all wine packaging/thirdparty/ffmpeg.exe -hide_banner -version 2>/dev/null | head -1 | tr -d '\r' || echo unknown)"
 {
   echo "Podcast MP3 Downloader $full"

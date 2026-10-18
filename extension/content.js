@@ -9,19 +9,29 @@
 
   let suppressUntil = 0;
 
-  // Is the point (x, y) over a <video> element (even if an overlay covers it)?
+  // Video players, including ones that have not started playing yet (YouTube
+  // shows only a picture with a play button until then, with no sized <video>).
+  const PLAYER_SELECTOR = "video, .html5-video-player, #movie_player, .videoPlayer-Rumble-cls, [id^='vid_v']";
+
+  // Is the point (x, y) over a video player (even if an overlay covers it)?
   function videoAtPoint(x, y) {
-    for (const v of document.querySelectorAll("video")) {
+    for (const v of document.querySelectorAll(PLAYER_SELECTOR)) {
       const r = v.getBoundingClientRect();
       if (r.width > 40 && r.height > 30 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return v;
     }
     return null;
   }
 
+  // An embedded player (an <iframe> on some other site) is a page of its own
+  // whose address is the video, e.g. youtube.com/embed/ID.
+  const isEmbeddedPlayer = window.top !== window && /\/embed\//.test(location.pathname) && PMP3Sites.isVideoUrl(location.href);
+
   function pageVideoUrl() {
     const canonical = document.querySelector('link[rel="canonical"]');
+    // The address bar first: YouTube changes pages without reloading, and its
+    // canonical link can still name the previous video.
     const candidates = [location.href];
-    if (canonical && canonical.href) candidates.unshift(canonical.href);
+    if (canonical && canonical.href) candidates.push(canonical.href);
     const og = document.querySelector('meta[property="og:url"]');
     if (og && og.content) candidates.push(og.content);
     for (const c of candidates) if (PMP3Sites.isVideoUrl(c)) return PMP3Sites.cleanUrl(c);
@@ -42,9 +52,18 @@
         return { url: PMP3Sites.cleanUrl(el.href), title, kind: "link" };
       }
     }
-    if (videoAtPoint(e.clientX, e.clientY)) {
+    if (isEmbeddedPlayer || videoAtPoint(e.clientX, e.clientY)) {
       const url = pageVideoUrl();
       if (url) return { url, title: pageTitle(), kind: "player" };
+    }
+    // Anything else stacked under the pointer, e.g. YouTube's hover preview
+    // that plays on top of a thumbnail link.
+    for (const el of document.elementsFromPoint(e.clientX, e.clientY)) {
+      const a = el.closest && el.closest("a[href]");
+      if (a && PMP3Sites.isVideoUrl(a.href)) {
+        const title = (a.getAttribute("title") || a.textContent || "").trim().slice(0, 200);
+        return { url: PMP3Sites.cleanUrl(a.href), title, kind: "link" };
+      }
     }
     return null;
   }

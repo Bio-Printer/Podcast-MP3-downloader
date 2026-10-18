@@ -151,7 +151,17 @@ static std::string findTool(const char* name) {
     return exe;  // rely on PATH
 }
 
-std::string ytDlpPath() { return findTool("yt-dlp"); }
+std::string ytDlpPath() {
+#ifdef _WIN32
+    // Preferred: the unpacked "folder" build (tools\yt-dlp\yt-dlp.exe). The
+    // single-file yt-dlp.exe unpacks itself on every start, which antivirus
+    // scanning can make take many seconds.
+    std::error_code ec;
+    fs::path dir = executableDir() / L"tools" / L"yt-dlp" / L"yt-dlp.exe";
+    if (fs::exists(dir, ec)) return pathToUtf8(dir);
+#endif
+    return findTool("yt-dlp");
+}
 std::string ffmpegPath() { return findTool("ffmpeg"); }
 
 std::string denoPath() {

@@ -5,7 +5,11 @@ $ErrorActionPreference = "Stop"
 $out = Join-Path $PSScriptRoot "thirdparty"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 $ProgressPreference = "SilentlyContinue"
-Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile "$out\yt-dlp.exe"
+# The unpacked "folder" build of yt-dlp: starts much faster than the single-file exe.
+Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip" -OutFile "$out\yt-dlp_win.zip"
+if (Test-Path "$out\yt-dlp") { Remove-Item "$out\yt-dlp" -Recurse -Force }
+Expand-Archive "$out\yt-dlp_win.zip" -DestinationPath "$out\yt-dlp"
+Remove-Item "$out\yt-dlp_win.zip"
 Invoke-WebRequest "https://raw.githubusercontent.com/yt-dlp/yt-dlp/master/LICENSE" -OutFile "$out\yt-dlp-LICENSE.txt"
 $tmp = Join-Path $env:TEMP ("pmp3-ffmpeg-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $tmp | Out-Null

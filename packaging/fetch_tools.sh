@@ -5,8 +5,11 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 out="$here/thirdparty"
 mkdir -p "$out"
-if [ ! -f "$out/yt-dlp.exe" ] || [ "${REFRESH:-0}" = 1 ]; then
-  curl -fsSL -o "$out/yt-dlp.exe" https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+if [ ! -f "$out/yt-dlp/yt-dlp.exe" ] || [ "${REFRESH:-0}" = 1 ]; then
+  # The unpacked "folder" build: starts much faster than the single-file exe.
+  rm -rf "$out/yt-dlp" && mkdir -p "$out/yt-dlp"
+  curl -fsSL -o "$out/yt-dlp_win.zip" https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_win.zip
+  unzip -q -o "$out/yt-dlp_win.zip" -d "$out/yt-dlp" && rm "$out/yt-dlp_win.zip"
   curl -fsSL -o "$out/yt-dlp-LICENSE.txt" https://raw.githubusercontent.com/yt-dlp/yt-dlp/master/LICENSE
 fi
 if [ ! -f "$out/ffmpeg.exe" ] || [ "${REFRESH:-0}" = 1 ]; then

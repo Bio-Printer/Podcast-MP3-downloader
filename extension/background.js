@@ -243,8 +243,35 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // ---- lifecycle -------------------------------------------------------------
+// Pages that were already open when the extension was installed or updated
+// have no page script yet; add it so middle-click works without a reload.
+async function injectIntoOpenTabs() {
+  const { content_scripts: [cs] } = chrome.runtime.getManifest();
+  const tabs = await chrome.tabs.query({ url: cs.matches });
+  for (const t of tabs) {
+    chrome.scripting
+      .executeScript({ target: { tabId: t.id, allFrames: true }, files: cs.js })
+      .catch(() => {});
+  }
+  // Players embedded on other sites live in frames of tabs with any address.
+  const all = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
+  for (const t of all) {
+    let frames = [];
+    try {
+      frames = (await chrome.webNavigation.getAllFrames({ tabId: t.id })) || [];
+    } catch (e) {
+      continue;
+    }
+    for (const f of frames) {
+      if (f.frameId !== 0 && PMP3Sites.isVideoUrl(f.url))
+        chrome.scripting.executeScript({ target: { tabId: t.id, frameIds: [f.frameId] }, files: cs.js }).catch(() => {});
+    }
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   setupMenus();
+  injectIntoOpenTabs();
   chrome.alarms.create("versionCheck", { periodInMinutes: 5 });
   checkVersion();
 });

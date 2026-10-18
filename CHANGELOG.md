@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.7
+
+- Middle-click now works on YouTube players embedded in other sites before
+  they start playing (YouTube shows only a picture there until you press
+  play), on YouTube search/home thumbnails that play a hover preview, and
+  after moving between YouTube videos without reloading the page.
+- Tabs that were already open when the extension updated get the
+  middle-click handler right away (no page reload needed).
+- Faster start: the video page is read once instead of twice (yt-dlp reuses
+  what it found for the download), and the bundled yt-dlp is now the
+  unpacked folder build (tools\yt-dlp\), which starts much faster than the
+  single-file exe that unpacks itself every time.
+- "Reading video page" shows what yt-dlp is doing and a seconds counter.
+- The browser-impersonation retry is no longer tried for YouTube bot checks
+  (it cannot help there and only made the failure take longer).
+
 ## 0.1.6
 
 - YouTube: watch pages, Shorts, youtu.be links, thumbnails, and YouTube

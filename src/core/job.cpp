@@ -285,24 +285,49 @@ JobStatus JobRunner::run() {
     status_.percent = 1;
     update();
 
-    std::string probeJson, errText;
+    // The page is read once: yt-dlp saves what it found to probe.info.json and
+    // the download step later reuses that file instead of reading the page
+    // again (on YouTube each read means solving its JavaScript challenge).
+    std::string errText;
     int code = 0;
+    const fs::path infoFile = tmp / "probe.info.json";
     std::vector<std::string> probeArgs = {ytdlp, "--ignore-config", "--no-playlist", "--playlist-items", "1",
-                                          "-J", "--no-progress", req_.url};
+                                          "--skip-download", "--write-info-json", "--no-write-playlist-metafiles",
+                                          "--newline", "--color", "never", "-o", pathToUtf8(tmp / "probe.%(ext)s"),
+                                          req_.url};
     // YouTube needs a JavaScript runtime to unlock its formats; we bundle Deno.
     const std::string deno = denoPath();
     if (!deno.empty()) probeArgs.insert(probeArgs.begin() + 1, {"--js-runtimes", "deno:" + deno});
-    bool ok = runStep(probeArgs, [&probeJson](const std::string& l) { probeJson += l + "\n"; }, errText, code);
+    // Show what yt-dlp is doing ("Downloading webpage", "Solving JS challenges
+    // using deno", ...) with a seconds counter, so a slow site does not look stuck.
+    const auto probeStart = std::chrono::steady_clock::now();
+    auto onProbeLine = [&](const std::string& l) {
+        std::string t = trim(l);
+        if (t.empty() || startsWith(t, "WARNING")) return;
+        size_t br = t.find("] ");
+        if (t[0] == '[' && br != std::string::npos) t = t.substr(br + 2);
+        // "fDHiHqjzWpo: Downloading webpage" -> "Downloading webpage"
+        size_t colon = t.find(": ");
+        if (colon != std::string::npos && colon < 40 && t.find(' ') > colon) t = t.substr(colon + 2);
+        if (t.size() > 70) t = t.substr(0, 70) + "...";
+        long secs = (long)std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() -
+                                                                         probeStart).count();
+        status_.message = "Reading video page (" + std::to_string(secs) + " s): " + t;
+        status_.percent = std::min(2.5, status_.percent + 0.1);
+        update();
+    };
+    bool ok = runStep(probeArgs, onProbeLine, errText, code);
     // Sites behind Cloudflare sometimes refuse plain HTTP clients; yt-dlp can
     // present itself like a regular Chrome browser instead.
     bool impersonate = false;
-    if (!ok && !cancelled_ && code != -1 &&
-        (errText.find("Cloudflare") != std::string::npos || errText.find("403") != std::string::npos)) {
+    // (YouTube's "confirm you're not a bot" is not helped by this, so skip it there.)
+    if (!ok && !cancelled_ && code != -1 && errText.find("not a bot") == std::string::npos &&
+        (errText.find("Cloudflare") != std::string::npos ||
+         (errText.find("403") != std::string::npos && siteOf(req_.url) != "youtube"))) {
         log("Site refused the request; retrying as a regular browser (--impersonate chrome)");
         impersonate = true;
-        probeJson.clear();
         probeArgs.insert(probeArgs.begin() + 1, {"--impersonate", "chrome"});
-        ok = runStep(probeArgs, [&probeJson](const std::string& l) { probeJson += l + "\n"; }, errText, code);
+        ok = runStep(probeArgs, onProbeLine, errText, code);
     }
     if (!ok) {
         if (code == -1)
@@ -320,7 +345,11 @@ JobStatus JobRunner::run() {
         return status_;
     }
     VideoInfo info;
-    std::string perr;
+    std::string perr, probeJson;
+    if (!readTextFile(infoFile, probeJson)) {
+        fail("yt-dlp read the page but found no video on it. " + lastErrorLine(errText));
+        return status_;
+    }
     if (!parseVideoInfo(probeJson, info, perr)) {
         fail(perr);
         return status_;
@@ -359,7 +388,7 @@ JobStatus JobRunner::run() {
         "download:[PMP3] %(progress.downloaded_bytes)s %(progress.total_bytes)s "
         "%(progress.total_bytes_estimate)s %(progress.speed)s %(progress.eta)s",
         "-o", pathToUtf8(tmp / "media.%(ext)s"), "-o", "thumbnail:" + pathToUtf8(tmp / "cover.%(ext)s"),
-        req_.url};
+        "--load-info-json", pathToUtf8(infoFile)};
     if (toPath(ffmpeg).is_absolute()) dlArgs.insert(dlArgs.begin() + 1, {"--ffmpeg-location", ffmpeg});
     if (impersonate) dlArgs.insert(dlArgs.begin() + 1, {"--impersonate", "chrome"});
     if (!deno.empty()) dlArgs.insert(dlArgs.begin() + 1, {"--js-runtimes", "deno:" + deno});
