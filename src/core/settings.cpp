@@ -22,6 +22,8 @@ const double kSpeedChoices[] = {1.0, 1.25, 1.5, 1.75, 2.0, 2.5};
 const int kSpeedChoiceCount = (int)(sizeof(kSpeedChoices) / sizeof(kSpeedChoices[0]));
 const int kBitrateChoices[] = {128, 160, 192};
 const int kBitrateChoiceCount = (int)(sizeof(kBitrateChoices) / sizeof(kBitrateChoices[0]));
+const double kVolumeChoices[] = {1.0, 1.1, 1.25, 1.5, 1.75, 2.0};
+const int kVolumeChoiceCount = (int)(sizeof(kVolumeChoices) / sizeof(kVolumeChoices[0]));
 
 #ifdef _WIN32
 static fs::path knownFolder(REFKNOWNFOLDERID id) {
@@ -86,6 +88,8 @@ void normalizeSettings(Settings& s) {
     if (!(s.speed >= 0.5 && s.speed <= 4.0)) s.speed = 1.5;
     s.speed = std::round(s.speed * 100.0) / 100.0;
     if (s.bitrateKbps < 64 || s.bitrateKbps > 320) s.bitrateKbps = 192;
+    if (!(s.volume >= kVolumeMin && s.volume <= kVolumeMax)) s.volume = 1.25;
+    s.volume = std::round(s.volume * 100.0) / 100.0;
     if (s.tempoEngine != "rubberband" && s.tempoEngine != "atempo") s.tempoEngine = "rubberband";
     if (trim(s.fileNameTemplate).empty() || s.fileNameTemplate == "{channel} - {title}{speedtag}")
         s.fileNameTemplate = Settings().fileNameTemplate;
@@ -96,7 +100,8 @@ void normalizeSettings(Settings& s) {
 
 std::string settingsToJson(const Settings& s) {
     json j = {{"outputDir", s.outputDir},           {"speed", s.speed},
-              {"bitrateKbps", s.bitrateKbps},       {"tempoEngine", s.tempoEngine},
+              {"bitrateKbps", s.bitrateKbps},       {"volume", s.volume},
+              {"tempoEngine", s.tempoEngine},
               {"fileNameTemplate", s.fileNameTemplate}, {"autoCloseSeconds", s.autoCloseSeconds}};
     return j.dump(2);
 }
@@ -107,6 +112,7 @@ void applySettingsJson(Settings& s, const std::string& text) {
     if (j.contains("outputDir") && j["outputDir"].is_string()) s.outputDir = j["outputDir"].get<std::string>();
     if (j.contains("speed") && j["speed"].is_number()) s.speed = j["speed"].get<double>();
     if (j.contains("bitrateKbps") && j["bitrateKbps"].is_number()) s.bitrateKbps = j["bitrateKbps"].get<int>();
+    if (j.contains("volume") && j["volume"].is_number()) s.volume = j["volume"].get<double>();
     if (j.contains("tempoEngine") && j["tempoEngine"].is_string())
         s.tempoEngine = j["tempoEngine"].get<std::string>();
     if (j.contains("fileNameTemplate") && j["fileNameTemplate"].is_string())

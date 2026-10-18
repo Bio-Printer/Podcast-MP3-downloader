@@ -3,7 +3,7 @@
 "use strict";
 
 const SPEEDS = [1, 1.25, 1.5, 1.75, 2, 2.5];
-const DEFAULTS = { speed: 1.5, bitrateKbps: 192 };
+const DEFAULTS = { speed: 1.5, bitrateKbps: 192, volume: 1.25 };
 const manifest = chrome.runtime.getManifest();
 const myVersion = manifest.version_name || manifest.version;
 const $ = (id) => document.getElementById(id);
@@ -47,7 +47,20 @@ async function renderSpeeds() {
     box.appendChild(b);
   }
   $("bitrate").value = String(p.bitrateKbps);
+  $("volume").value = String(p.volume);
+  showVolume(p.volume);
 }
+
+function showVolume(v) {
+  $("volumeValue").textContent = Number(v).toFixed(2).replace(/0$/, "") + "x";
+}
+
+$("volume").addEventListener("input", () => showVolume($("volume").value));
+$("volume").addEventListener("change", async () => {
+  const v = Math.round(Number($("volume").value) * 100) / 100;
+  await chrome.storage.local.set({ volume: v });
+  native({ cmd: "setSettings", settings: { volume: v } });
+});
 
 $("bitrate").addEventListener("change", async () => {
   const v = Number($("bitrate").value);

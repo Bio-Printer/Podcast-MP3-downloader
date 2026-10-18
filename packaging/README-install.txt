@@ -30,8 +30,9 @@ FIRST INSTALL (once)
 
 USING IT
 --------
-- Click the toolbar button to choose the speed (1x ... 2.5x, default 1.5x)
-  and quality. Your choice is remembered.
+- Click the toolbar button to choose the speed (1x ... 2.5x, default 1.5x),
+  the volume boost (slider, 1x ... 2x, default 1.25x) and quality.
+  Your choices are remembered.
 - On rumble.com, MIDDLE-CLICK a playing video, or the thumbnail of any
   video, to save its MP3. A small window shows progress and closes itself
   when done.

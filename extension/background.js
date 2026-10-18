@@ -4,7 +4,7 @@
 importScripts("sites.js");
 
 const HOST = "com.bioprinter.podcastmp3";
-const DEFAULTS = { speed: 1.5, bitrateKbps: 192 };
+const DEFAULTS = { speed: 1.5, bitrateKbps: 192, volume: 1.25 };
 const MANIFEST = chrome.runtime.getManifest();
 const MY_VERSION = MANIFEST.version_name || MANIFEST.version;
 
@@ -26,7 +26,7 @@ function native(msg) {
 
 async function prefs() {
   const p = await chrome.storage.local.get(DEFAULTS);
-  return { speed: Number(p.speed) || 1.5, bitrateKbps: Number(p.bitrateKbps) || 192 };
+  return { speed: Number(p.speed) || 1.5, bitrateKbps: Number(p.bitrateKbps) || 192, volume: Number(p.volume) || 1.25 };
 }
 
 // ---- version check / self reload -------------------------------------------
@@ -59,7 +59,7 @@ const known = {}; // jobId -> last state
 
 async function startJob(url, title) {
   const p = await prefs();
-  const reply = await native({ cmd: "start", url, title, speed: p.speed, bitrateKbps: p.bitrateKbps });
+  const reply = await native({ cmd: "start", url, title, speed: p.speed, bitrateKbps: p.bitrateKbps, volume: p.volume });
   if (reply.ok) {
     known[reply.jobId] = "queued";
     schedulePoll(1000);

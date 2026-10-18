@@ -196,7 +196,7 @@ std::string ffmetaEscape(const std::string& v) {
     return out;
 }
 
-TagSet buildTags(const VideoInfo& info, double speed) {
+TagSet buildTags(const VideoInfo& info, double speed, double volume) {
     TagSet t;
     t.title = info.title;
     t.artist = info.channel;
@@ -209,6 +209,7 @@ TagSet buildTags(const VideoInfo& info, double speed) {
     if (!info.webpageUrl.empty()) c += "Source: " + info.webpageUrl + "\n";
     if (!t.date.empty()) c += "Published: " + t.date + "\n";
     c += "Speed: " + formatSpeed(speed) + "x\n";
+    if (std::fabs(volume - 1.0) >= 0.001) c += "Volume: " + formatSpeed(volume) + "x\n";
     c += "Downloaded " + nowLocalString() + " with " PMP3_PRODUCT_NAME " v" PMP3_VERSION;
     t.comment = c;
     return t;
@@ -242,6 +243,18 @@ std::string tempoFilter(double speed, const std::string& engine) {
     else
         std::snprintf(buf, sizeof(buf), "rubberband=tempo=%.4g", speed);
     return buf;
+}
+
+std::string audioFilter(double speed, const std::string& engine, double volume) {
+    std::string chain = tempoFilter(speed, engine);
+    if (std::fabs(volume - 1.0) >= 0.001) {
+        char buf[96];
+        std::snprintf(buf, sizeof(buf), "volume=%.4g", volume);
+        if (!chain.empty()) chain += ",";
+        chain += buf;
+        if (volume > 1.0) chain += ",alimiter=limit=0.97:level=0";
+    }
+    return chain;
 }
 
 // ---- ID3 -------------------------------------------------------------

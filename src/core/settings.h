@@ -11,6 +11,7 @@ struct Settings {
     std::string outputDir;             // where finished MP3 files go
     double speed = 1.5;                // playback speed baked into the MP3
     int bitrateKbps = 192;             // MP3 bitrate (stereo, 44.1 kHz)
+    double volume = 1.25;              // loudness multiplier (1.0 = unchanged)
     std::string tempoEngine = "rubberband";  // "rubberband" or "atempo"
     // Placeholders: {title} {channel} {date} {speed} {speedtag} {id}
     std::string fileNameTemplate = "{date} {channel} - {title}{speedtag}";
@@ -42,6 +43,9 @@ extern const double kSpeedChoices[];
 extern const int kSpeedChoiceCount;
 extern const int kBitrateChoices[];
 extern const int kBitrateChoiceCount;
+extern const double kVolumeChoices[];
+extern const int kVolumeChoiceCount;
+const double kVolumeMin = 0.5, kVolumeMax = 3.0;
 
 // Locations of the bundled tools: <exe dir>\tools\yt-dlp.exe etc.,
 // falling back to the plain program name (searched on PATH).

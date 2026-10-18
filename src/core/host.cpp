@@ -102,7 +102,7 @@ std::string extensionVersionOnDisk() {
 
 // ---- launching ---------------------------------------------------------
 
-bool launchJobProcess(const std::string& jobId, const std::string& url, double speed, int bitrate,
+bool launchJobProcess(const std::string& jobId, const std::string& url, double speed, int bitrate, double volume,
                       std::string& err) {
     fs::path dir = executableDir();
     std::error_code ec;
@@ -111,7 +111,7 @@ bool launchJobProcess(const std::string& jobId, const std::string& url, double s
     fs::path gui = dir / L"PodcastMP3.exe";
     if (fs::exists(gui, ec)) {
         args = {pathToUtf8(gui), "--job", jobId, "--url", url, "--speed", formatSpeed(speed), "--bitrate",
-                std::to_string(bitrate)};
+                std::to_string(bitrate), "--volume", formatSpeed(volume)};
         return spawnDetached(args, err, false);
     }
     fs::path host = dir / L"podcastmp3-host.exe";
@@ -119,7 +119,7 @@ bool launchJobProcess(const std::string& jobId, const std::string& url, double s
     fs::path host = dir / "podcastmp3-host";
 #endif
     args = {pathToUtf8(host), "run-job", "--job", jobId, "--url", url, "--speed", formatSpeed(speed), "--bitrate",
-            std::to_string(bitrate)};
+            std::to_string(bitrate), "--volume", formatSpeed(volume)};
     return spawnDetached(args, err, true);
 }
 
@@ -320,12 +320,14 @@ std::string handleHostRequest(const std::string& requestJson) {
                 Settings check = s;
                 check.speed = speed;
                 check.bitrateKbps = bitrate;
+                if (req.contains("volume") && req["volume"].is_number()) check.volume = req["volume"].get<double>();
                 normalizeSettings(check);
                 JobStatus st;
                 st.id = newJobId();
                 st.url = url;
                 st.speed = check.speed;
                 st.bitrateKbps = check.bitrateKbps;
+                st.volume = check.volume;
                 st.state = JobState::Queued;
                 st.message = "Starting...";
                 st.title = req.value("title", "");
@@ -335,7 +337,7 @@ std::string handleHostRequest(const std::string& requestJson) {
                 writeTextFileAtomic(jobStatusFile(st.id), jobStatusToJson(st));
                 pruneOldJobs(60);
                 std::string err;
-                if (launchJobProcess(st.id, url, check.speed, check.bitrateKbps, err)) {
+                if (launchJobProcess(st.id, url, check.speed, check.bitrateKbps, check.volume, err)) {
                     reply["ok"] = true;
                     reply["jobId"] = st.id;
                     reply["job"] = jobToJson(st);

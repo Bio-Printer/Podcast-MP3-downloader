@@ -1,6 +1,6 @@
 // podcastmp3-host: command line tool and Edge native-messaging helper.
 //
-//   podcastmp3-host download <url> [--speed 1.5] [--bitrate 192] [--out DIR] [--engine rubberband|atempo]
+//   podcastmp3-host download <url> [--speed 1.5] [--bitrate 192] [--volume 1.25] [--out DIR] [--engine rubberband|atempo]
 //   podcastmp3-host info <url>
 //   podcastmp3-host register | unregister
 //   podcastmp3-host --version
@@ -49,7 +49,7 @@ static void usage() {
     out(std::string(PMP3_PRODUCT_NAME " helper v") + PMP3_VERSION_FULL +
         "\n\n"
         "Usage:\n"
-        "  podcastmp3-host download <url> [--speed 1.5] [--bitrate 192] [--out DIR] [--engine rubberband|atempo]\n"
+        "  podcastmp3-host download <url> [--speed 1.5] [--bitrate 192] [--volume 1.25] [--out DIR] [--engine rubberband|atempo]\n"
         "  podcastmp3-host info <url>          show what would be downloaded\n"
         "  podcastmp3-host register            connect the helper to Edge/Chrome\n"
         "  podcastmp3-host unregister\n"
@@ -61,6 +61,7 @@ struct Options {
     std::string url, out, engine, jobId;
     double speed = 0;
     int bitrate = 0;
+    double volume = 0;
 };
 
 static bool parseOptions(const std::vector<std::string>& a, size_t start, Options& o) {
@@ -75,6 +76,8 @@ static bool parseOptions(const std::vector<std::string>& a, size_t start, Option
             o.speed = std::atof(v.c_str());
         else if (a[i] == "--bitrate" && next(v))
             o.bitrate = std::atoi(v.c_str());
+        else if (a[i] == "--volume" && next(v))
+            o.volume = std::atof(v.c_str());
         else if (a[i] == "--out" && next(v))
             o.out = v;
         else if (a[i] == "--engine" && next(v))
@@ -97,6 +100,7 @@ static JobRequest makeRequest(const Options& o) {
     Settings s = loadSettings();
     if (o.speed > 0) s.speed = o.speed;
     if (o.bitrate > 0) s.bitrateKbps = o.bitrate;
+    if (o.volume > 0) s.volume = o.volume;
     if (!o.out.empty()) s.outputDir = o.out;
     if (!o.engine.empty()) s.tempoEngine = o.engine;
     normalizeSettings(s);

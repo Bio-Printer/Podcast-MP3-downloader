@@ -23,6 +23,7 @@ struct JobRequest {
     std::string url;      // page URL as given by the user
     double speed = 1.5;
     int bitrateKbps = 192;
+    double volume = 1.25;
     std::string outputDir;
     std::string tempoEngine = "rubberband";
     std::string fileNameTemplate = "{date} {channel} - {title}{speedtag}";
@@ -41,6 +42,7 @@ struct JobStatus {
     std::string error;
     double speed = 1.5;
     int bitrateKbps = 192;
+    double volume = 1.25;
     double duration = 0;   // source duration (seconds)
     std::string started;
     std::string finished;

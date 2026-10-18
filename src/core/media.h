@@ -60,11 +60,15 @@ std::string ffmetaEscape(const std::string& value);
 struct TagSet {
     std::string title, artist, album, date, year, genre, comment, sourceUrl;
 };
-TagSet buildTags(const VideoInfo& info, double speed);
+TagSet buildTags(const VideoInfo& info, double speed, double volume = 1.0);
 std::string buildFfmetadata(const TagSet& tags);
 
 // Audio filter for the chosen speed ("" for 1.0x).
 std::string tempoFilter(double speed, const std::string& engine);
+// Full ffmpeg -af chain: speed change, then volume boost with a limiter so
+// louder peaks are held just below full scale instead of distorting.
+// "" when nothing needs changing.
+std::string audioFilter(double speed, const std::string& engine, double volume);
 
 // Adds (or replaces) a WOAS "official audio source" URL frame and a COMM
 // comment frame in the ID3v2.3/2.4 tag at the start of the file. ffmpeg

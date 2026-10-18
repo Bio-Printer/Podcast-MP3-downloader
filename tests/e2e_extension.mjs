@@ -102,6 +102,10 @@ await popup.screenshot({ path: path.join(shots, "2-popup.png") });
 
 // 6. Choose 2x in the popup, then middle-click a thumbnail link on a list page.
 await popup.locator("#speeds button", { hasText: /^2x$/ }).click();
+const vol = await popup.locator("#volumeValue").innerText();
+if (vol !== "1.25x") fail("volume slider default is " + vol);
+await popup.locator("#volume").fill("1.5");
+await popup.locator("#volume").dispatchEvent("change");
 await page.goto(`${base}/list.html`);
 const pagesBefore = context.pages().length;
 await page.locator("a.thumb").click({ button: "middle" });
@@ -114,6 +118,11 @@ await popup.waitForTimeout(2500);
 await popup.screenshot({ path: path.join(shots, "3-popup-two-jobs.png") });
 const jobsText = await popup.locator("#jobs").innerText();
 console.log("popup jobs:", jobsText.replace(/\n/g, " | "));
+const jobsDirPath = path.join(home, ".local", "share", "podcastmp3", "jobs");
+const vols = fs.readdirSync(jobsDirPath).filter((f) => f.endsWith(".json"))
+  .map((f) => JSON.parse(fs.readFileSync(path.join(jobsDirPath, f), "utf8"))).sort((a, b) => a.id.localeCompare(b.id)).map((j) => j.volume);
+console.log("job volumes:", vols);
+if (JSON.stringify(vols) !== "[1.25,1.5]") fail("unexpected job volumes " + JSON.stringify(vols));
 
 // 7. "Unzip a new version over the old one": change the extension files on
 // disk and check that the extension notices and reloads itself.

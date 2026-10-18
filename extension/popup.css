@@ -24,6 +24,9 @@ section { margin: 10px 0; }
 .segmented button { flex: 1; padding: 6px 0; border: 1px solid var(--line); background: var(--chip); color: var(--fg);
                     border-radius: 6px; cursor: pointer; font: inherit; }
 .segmented button[aria-checked="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.value { font-weight: 600; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; margin: 6px 0 2px; accent-color: var(--accent); }
+.scale { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
 select { font: inherit; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--chip); color: var(--fg); }
 button.primary { width: 100%; padding: 9px; border: 0; border-radius: 7px; background: var(--accent); color: var(--accent-fg);
                  font: inherit; font-weight: 600; cursor: pointer; }

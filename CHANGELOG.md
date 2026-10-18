@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+- Volume boost: slider in the Edge popup (1x-2x, default 1.25x) and a
+  "Volume boost" choice in PodcastMP3.exe. A limiter keeps boosted peaks
+  just below full scale so loud parts don't distort. The boost is noted in
+  the MP3's comment tag. Command line: `--volume 1.25`.
+
 ## 0.1.3
 
 - One ZIP per release. Files are at the top level of the ZIP, so extracting

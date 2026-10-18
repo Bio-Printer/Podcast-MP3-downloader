@@ -49,6 +49,7 @@ std::string jobStatusToJson(const JobStatus& s) {
               {"error", s.error},
               {"speed", s.speed},
               {"bitrateKbps", s.bitrateKbps},
+              {"volume", s.volume},
               {"duration", s.duration},
               {"started", s.started},
               {"finished", s.finished},
@@ -71,6 +72,7 @@ bool jobStatusFromJson(const std::string& text, JobStatus& s) {
     s.error = j.value("error", "");
     s.speed = j.value("speed", 1.5);
     s.bitrateKbps = j.value("bitrateKbps", 192);
+    s.volume = j.value("volume", 1.0);
     s.duration = j.value("duration", 0.0);
     s.started = j.value("started", "");
     s.finished = j.value("finished", "");
@@ -87,6 +89,7 @@ JobRequest requestFromSettings(const Settings& s, const std::string& url) {
     r.url = trim(url);
     r.speed = s.speed;
     r.bitrateKbps = s.bitrateKbps;
+    r.volume = s.volume;
     r.outputDir = s.outputDir;
     r.tempoEngine = s.tempoEngine;
     r.fileNameTemplate = s.fileNameTemplate;
@@ -130,6 +133,7 @@ JobRunner::JobRunner(JobRequest req, UpdateFn onUpdate, LogFn onLog)
     status_.url = req_.url;
     status_.speed = req_.speed;
     status_.bitrateKbps = req_.bitrateKbps;
+    status_.volume = req_.volume;
     status_.version = PMP3_VERSION_FULL;
 }
 
@@ -233,8 +237,7 @@ bool JobRunner::runStep(const std::vector<std::string>& args,
 JobStatus JobRunner::run() {
     status_.started = nowLocalString();
     log(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " job " + req_.id);
-    log("URL: " + req_.url + "  speed " + formatSpeed(req_.speed) + "x  " + std::to_string(req_.bitrateKbps) +
-        " kbps  output " + req_.outputDir);
+    log("URL: " + req_.url + "  speed " + formatSpeed(req_.speed) + "x  " + std::to_string(req_.bitrateKbps) + " kbps  volume " + formatSpeed(req_.volume) + "x  output " + req_.outputDir);
 
     // Lets the browser extension cancel us by creating <id>.cancel.
     std::atomic<bool> watching{true};
@@ -397,7 +400,7 @@ JobStatus JobRunner::run() {
     fs::path metaFile = tmp / "tags.txt";
     {
         std::ofstream mf(metaFile, std::ios::binary | std::ios::trunc);
-        mf << buildFfmetadata(buildTags(info, req_.speed));
+        mf << buildFfmetadata(buildTags(info, req_.speed, req_.volume));
     }
     fs::path outTmp = tmp / "out.mp3";
     if (info.duration <= 0) {
@@ -420,7 +423,7 @@ JobStatus JobRunner::run() {
         a.insert(a.end(), {"-map", "0:a:0"});
         if (withCover) a.insert(a.end(), {"-map", "2:v:0"});
         a.insert(a.end(), {"-map_metadata", "1", "-map_chapters", "-1"});
-        std::string filter = tempoFilter(req_.speed, engine);
+        std::string filter = audioFilter(req_.speed, engine, req_.volume);
         if (!filter.empty()) a.insert(a.end(), {"-af", filter});
         a.insert(a.end(), {"-c:a", "libmp3lame", "-b:a", std::to_string(req_.bitrateKbps) + "k", "-ar", "44100",
                            "-ac", "2"});
@@ -467,7 +470,7 @@ JobStatus JobRunner::run() {
     }
 
     std::string id3err;
-    if (!addId3Extras(outTmp, info.webpageUrl, buildTags(info, req_.speed).comment, id3err))
+    if (!addId3Extras(outTmp, info.webpageUrl, buildTags(info, req_.speed, req_.volume).comment, id3err))
         log("Note: could not add source URL / comment frames: " + id3err);
 
     // ---- 4. Move into place -----------------------------------------

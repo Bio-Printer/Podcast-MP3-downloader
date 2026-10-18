@@ -65,6 +65,8 @@ enum CtlId {
     IDC_LBL_URL,
     IDC_LBL_SPEED,
     IDC_LBL_BITRATE,
+    IDC_VOLUME,
+    IDC_LBL_VOLUME,
     IDC_LBL_FOLDER,
 };
 
@@ -173,6 +175,11 @@ double comboSpeed() {
     return (i >= 0 && i < kSpeedChoiceCount) ? kSpeedChoices[i] : 1.5;
 }
 
+double comboVolume() {
+    int i = (int)SendMessageW(ctl(IDC_VOLUME), CB_GETCURSEL, 0, 0);
+    return (i >= 0 && i < kVolumeChoiceCount) ? kVolumeChoices[i] : 1.25;
+}
+
 int comboBitrate() {
     int i = (int)SendMessageW(ctl(IDC_BITRATE), CB_GETCURSEL, 0, 0);
     return (i >= 0 && i < kBitrateChoiceCount) ? kBitrateChoices[i] : 192;
@@ -211,6 +218,8 @@ void layoutMain() {
     move(IDC_SPEED, x2, y, 90, 200);
     move(IDC_LBL_BITRATE, x2 + 110, y + 4, 60, 18);
     move(IDC_BITRATE, x2 + 170, y, 120, 200);
+    move(IDC_LBL_VOLUME, x2 + 310, y + 4, 86, 18);
+    move(IDC_VOLUME, x2 + 396, y, 80, 200);
     y += rowH + 10;
     move(IDC_LBL_FOLDER, m, y + 4, lbl, 18);
     move(IDC_FOLDER, x2, y, w - x2 - m - 160, rowH);
@@ -338,6 +347,7 @@ void onDownloadClicked() {
     Settings s = loadSettings();
     s.speed = comboSpeed();
     s.bitrateKbps = comboBitrate();
+    s.volume = comboVolume();
     std::string folder = trim(getText(IDC_FOLDER));
     if (!folder.empty()) s.outputDir = folder;
     saveSettings(s);
@@ -425,6 +435,15 @@ void createMainControls() {
     }
     if (SendMessageW(ctl(IDC_BITRATE), CB_GETCURSEL, 0, 0) < 0)
         SendMessageW(ctl(IDC_BITRATE), CB_SETCURSEL, (WPARAM)(kBitrateChoiceCount - 1), 0);
+    add(L"STATIC", L"Volume boost:", 0, IDC_LBL_VOLUME);
+    add(WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL, IDC_VOLUME);
+    int volSel = 2;  // 1.25x
+    for (int i = 0; i < kVolumeChoiceCount; ++i) {
+        std::wstring t = W(formatSpeed(kVolumeChoices[i]) + "x");
+        SendMessageW(ctl(IDC_VOLUME), CB_ADDSTRING, 0, (LPARAM)t.c_str());
+        if (std::fabs(kVolumeChoices[i] - s.volume) < 0.001) volSel = i;
+    }
+    SendMessageW(ctl(IDC_VOLUME), CB_SETCURSEL, (WPARAM)volSel, 0);
     add(L"STATIC", L"Save MP3 in:", 0, IDC_LBL_FOLDER);
     add(L"EDIT", W(s.outputDir), WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL, IDC_FOLDER);
     add(L"BUTTON", L"Browse...", WS_TABSTOP | BS_PUSHBUTTON, IDC_BROWSE);
@@ -487,7 +506,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             return 0;
         case WM_GETMINMAXINFO: {
             auto mmi = (MINMAXINFO*)lp;
-            mmi->ptMinTrackSize.x = S(g.jobMode ? 420 : 560);
+            mmi->ptMinTrackSize.x = S(g.jobMode ? 420 : 620);
             mmi->ptMinTrackSize.y = S(g.jobMode ? 190 : 380);
             return 0;
         }
@@ -635,6 +654,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
         std::string speed = argValue(args, "--speed"), bitrate = argValue(args, "--bitrate");
         if (!speed.empty()) s.speed = std::atof(speed.c_str());
         if (!bitrate.empty()) s.bitrateKbps = std::atoi(bitrate.c_str());
+        std::string volume = argValue(args, "--volume");
+        if (!volume.empty()) s.volume = std::atof(volume.c_str());
         normalizeSettings(s);
         g.request = requestFromSettings(s, url);
         g.request.id = jobId;

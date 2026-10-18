@@ -150,6 +150,10 @@ static void testFfmeta() {
     CHECK_EQ(tempoFilter(1.0, "rubberband"), std::string(""));
     CHECK_EQ(tempoFilter(1.5, "rubberband"), std::string("rubberband=tempo=1.5"));
     CHECK_EQ(tempoFilter(1.25, "atempo"), std::string("atempo=1.25"));
+    CHECK_EQ(audioFilter(1.5, "rubberband", 1.25), std::string("rubberband=tempo=1.5,volume=1.25,alimiter=limit=0.97:level=0"));
+    CHECK_EQ(audioFilter(1.0, "rubberband", 1.0), std::string(""));
+    CHECK_EQ(audioFilter(1.0, "atempo", 0.8), std::string("volume=0.8"));
+    CHECK(buildTags(info, 1.5, 1.25).comment.find("Volume: 1.25x") != std::string::npos);
 }
 
 static void testProgress() {
@@ -210,6 +214,13 @@ static void testSettings() {
     CHECK_EQ(s.speed, 1.5);
     CHECK_EQ(s.bitrateKbps, 160);
     CHECK_EQ(s.tempoEngine, std::string("rubberband"));
+    CHECK_EQ(s.volume, 1.25);
+    applySettingsJson(s, R"({"volume": 1.5})");
+    normalizeSettings(s);
+    CHECK_EQ(s.volume, 1.5);
+    applySettingsJson(s, R"({"volume": 50})");
+    normalizeSettings(s);
+    CHECK_EQ(s.volume, 1.25);
     CHECK(!s.outputDir.empty());
     CHECK(toPath(s.outputDir) == defaultOutputDir());
     Settings old;
