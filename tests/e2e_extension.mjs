@@ -146,20 +146,18 @@ await page.waitForTimeout(800);
 const chooser = await page.evaluate(() => {
   const h = document.getElementById("pmp3-chooser");
   if (!h) return null;
-  const opts = [...h.shadowRoot.querySelectorAll("option")].map((o) => o.textContent);
+  const opts = [...h.shadowRoot.querySelectorAll("li")].map((o) => o.textContent);
   const outlined = [...document.querySelectorAll("iframe")].map((f) => f.style.outline);
   return { opts, outlined };
 });
 console.log("chooser:", JSON.stringify(chooser));
-if (!chooser || !/^1\. main video .*largest/.test(chooser.opts[0]) || !/^2\. small related video/.test(chooser.opts[1]))
+if (!chooser || !/^1(main video|Me at the zoo).*largest/.test(chooser.opts[0]) || !/^2small related video/.test(chooser.opts[1]))
   fail("chooser not shown or not sorted by size");
 await page.screenshot({ path: path.join(shots, "5-chooser.png") });
 const jobsBeforePick = fs.readdirSync(path.join(home, ".local/share/podcastmp3/jobs")).length;
 await page.evaluate(() => {
   const r = document.getElementById("pmp3-chooser").shadowRoot;
-  const sel = r.querySelector("select");
-  sel.value = "1";
-  sel.dispatchEvent(new Event("change"));
+  r.querySelectorAll("li")[1].click(); // select the second (smaller) video
   r.querySelector(".go").click();
 });
 await page.waitForTimeout(2500);

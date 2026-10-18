@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.10
+
+- Video chooser shows every video at once (no drop-down to open), each with
+  its real title, plus channel, length (Rumble), site and size. Titles come
+  from YouTube's and Rumble's public oEmbed lookups, or from the embedded
+  player itself. Click selects (and outlines the player on the page),
+  double-click or Enter downloads, arrow keys move, Esc cancels.
+
 ## 0.1.9
 
 - Pages with several embedded videos: Alt+Shift+M, the toolbar button and
