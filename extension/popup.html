@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Podcast MP3 Downloader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon32.png" alt="" width="28" height="28">
+    <div>
+      <h1>Podcast MP3 Downloader</h1>
+      <div id="versions" class="versions">Extension v<span id="extVersion"></span></div>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <section>
+    <div class="label">Playback speed for the MP3</div>
+    <div id="speeds" class="segmented" role="radiogroup" aria-label="Playback speed"></div>
+  </section>
+
+  <section class="row">
+    <label for="bitrate" class="label">Quality</label>
+    <select id="bitrate">
+      <option value="128">128 kbps stereo</option>
+      <option value="160">160 kbps stereo</option>
+      <option value="192">192 kbps stereo</option>
+    </select>
+  </section>
+
+  <button id="sendTab" class="primary">Download MP3 of this tab</button>
+  <p class="hint">Or <b>middle-click</b> any Rumble video or video thumbnail.</p>
+
+  <section>
+    <div class="label">Recent downloads</div>
+    <ul id="jobs" class="jobs"><li class="empty">None yet</li></ul>
+  </section>
+
+  <footer>
+    <button id="openFolder" class="link">Open MP3 folder</button>
+    <button id="openApp" class="link">Desktop app</button>
+    <button id="updateYtdlp" class="link">Update yt-dlp</button>
+  </footer>
+  <script src="sites.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

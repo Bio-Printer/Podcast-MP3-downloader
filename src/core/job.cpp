@@ -1,7 +1,7 @@
 #include "job.h"
 
 #include "nlohmann/json.hpp"
-#include "process.h"
+#include "childproc.h"
 #include "version.h"
 
 #include <algorithm>

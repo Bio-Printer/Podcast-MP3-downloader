@@ -1,8 +1,8 @@
-build/
-out/
-dist/
-.vs/
-*.user
-x64/
 *.pem
+*.user
+.vs/
+build/
+dist/
+out/
 packaging/thirdparty/
+x64/

@@ -2,21 +2,25 @@ cmake_minimum_required(VERSION 3.20)
 
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" PMP3_VERSION LIMIT_COUNT 1)
 project(PodcastMP3 VERSION ${PMP3_VERSION} LANGUAGES CXX)
+if(WIN32)
+    enable_language(RC)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+# MinGW's threading headers need the GNU dialect (-std=gnu++17).
+set(CMAKE_CXX_EXTENSIONS ON)
 
 option(PMP3_BUILD_TESTS "Build unit tests" ON)
 
 add_library(pmp3core STATIC
     src/core/util.cpp
-    src/core/process.cpp
+    src/core/childproc.cpp
     src/core/settings.cpp
     src/core/media.cpp
     src/core/job.cpp
     src/core/host.cpp)
-target_include_directories(pmp3core PUBLIC src/core third_party)
+target_include_directories(pmp3core PUBLIC third_party)
 
 if(WIN32)
     target_compile_definitions(pmp3core PUBLIC UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
@@ -34,7 +38,8 @@ endif()
 
 if(MINGW)
     # Static runtime: the .exe files run without extra MinGW DLLs.
-    set(PMP3_MINGW_LINK -static -static-libgcc -static-libstdc++ -municode)
+    set(PMP3_MINGW_STATIC -static -static-libgcc -static-libstdc++)
+    set(PMP3_MINGW_LINK ${PMP3_MINGW_STATIC} -municode)
 endif()
 
 # Command line tool + Edge native messaging host
@@ -57,7 +62,7 @@ if(PMP3_BUILD_TESTS)
     add_executable(pmp3tests tests/test_core.cpp)
     target_link_libraries(pmp3tests PRIVATE pmp3core)
     if(WIN32)
-        target_link_options(pmp3tests PRIVATE ${PMP3_MINGW_LINK})
+        target_link_options(pmp3tests PRIVATE ${PMP3_MINGW_STATIC})
     endif()
     add_test(NAME core COMMAND pmp3tests)
 endif()

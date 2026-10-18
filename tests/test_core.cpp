@@ -1,10 +1,10 @@
 // Unit tests for the portable core. Run: pmp3tests  (exit code 0 = all passed)
 
-#include "host.h"
-#include "job.h"
-#include "media.h"
-#include "settings.h"
-#include "util.h"
+#include "../src/core/host.h"
+#include "../src/core/job.h"
+#include "../src/core/media.h"
+#include "../src/core/settings.h"
+#include "../src/core/util.h"
 
 #include <cstdio>
 #include <fstream>

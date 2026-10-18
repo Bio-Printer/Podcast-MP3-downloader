@@ -11,7 +11,7 @@
 #include "../core/host.h"
 #include "../core/job.h"
 #include "../core/media.h"
-#include "../core/process.h"
+#include "../core/childproc.h"
 #include "../core/settings.h"
 #include "../core/version.h"
 

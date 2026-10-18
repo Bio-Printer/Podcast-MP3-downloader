@@ -2,7 +2,7 @@
 
 #include "job.h"
 #include "nlohmann/json.hpp"
-#include "process.h"
+#include "childproc.h"
 #include "settings.h"
 #include "version.h"
 

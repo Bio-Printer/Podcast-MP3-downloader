@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "Podcast MP3 Downloader",
+  "short_name": "Podcast MP3",
+  "version": "0.1.0",
+  "version_name": "0.1.0 (build 20261018-1430)",
+  "description": "Middle-click a Rumble video to save its audio as an MP3 at your chosen playback speed.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA33dLH4tmXW46KfV1BXjFTrNjUM09JWFWlDxWmLatTch2if3M88MMEyoyk/5wZslVdiweirEzQYT9SXwh8nCSavIwKbaoXSQBrMRIvrtI7R/0pmZpxSDX6n7rQ3tZMn3OcL/weHTM6MTHUXKt8ssAA2LAzX6rGGlL2KaSJ8pRot12/6uwg5x7QlEO0pmwlg/rsPgoab7MzcpZH/1iHSydgZJl4kImATwHPjWJb0yrL9QXtSDYLb0E0k/5YacUlEQBSHb192uF138ctcYPPAbRn49drA1QqcA4lHlAlnJFCGUYQ8QChS8wrE0PEFkDwoex4MvEW196kCkppq5M8qC0oQIDAQAB",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "nativeMessaging",
+    "storage",
+    "contextMenus",
+    "notifications",
+    "alarms"
+  ],
+  "host_permissions": [
+    "*://*.rumble.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Podcast MP3 Downloader",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.rumble.com/*"
+      ],
+      "js": [
+        "sites.js",
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "commands": {
+    "send-current-page": {
+      "suggested_key": {
+        "default": "Alt+Shift+M"
+      },
+      "description": "Download the MP3 of the video on the current page"
+    }
+  }
+}

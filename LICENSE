@@ -1,0 +1,8 @@
+Copyright (c) 2026 Bio-Printer. All rights reserved.
+
+No open-source license has been chosen for this project yet.
+
+Third-party components keep their own licenses:
+  - nlohmann/json (third_party/nlohmann) - MIT
+  - yt-dlp (bundled in the Windows release) - Unlicense (public domain)
+  - FFmpeg (bundled in the Windows release) - GPL v3 build from https://github.com/BtbN/FFmpeg-Builds

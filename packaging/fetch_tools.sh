@@ -1,0 +1,20 @@
+#!/bin/bash
+# Downloads the Windows builds of yt-dlp and ffmpeg that are bundled in the
+# release ZIP into packaging/thirdparty/ (not committed to git).
+set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+out="$here/thirdparty"
+mkdir -p "$out"
+if [ ! -f "$out/yt-dlp.exe" ] || [ "${REFRESH:-0}" = 1 ]; then
+  curl -fsSL -o "$out/yt-dlp.exe" https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+  curl -fsSL -o "$out/yt-dlp-LICENSE.txt" https://raw.githubusercontent.com/yt-dlp/yt-dlp/master/LICENSE
+fi
+if [ ! -f "$out/ffmpeg.exe" ] || [ "${REFRESH:-0}" = 1 ]; then
+  tmp="$(mktemp -d)"
+  curl -fsSL -o "$tmp/ff.zip" https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip
+  unzip -q -o -j "$tmp/ff.zip" '*/bin/ffmpeg.exe' '*/LICENSE.txt' -d "$tmp"
+  mv "$tmp/ffmpeg.exe" "$out/ffmpeg.exe"
+  mv "$tmp/LICENSE.txt" "$out/ffmpeg-LICENSE.txt"
+  rm -rf "$tmp"
+fi
+ls -la "$out"
