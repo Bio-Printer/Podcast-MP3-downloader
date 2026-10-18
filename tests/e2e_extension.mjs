@@ -118,6 +118,16 @@ await popup.waitForTimeout(2500);
 await popup.screenshot({ path: path.join(shots, "3-popup-two-jobs.png") });
 const jobsText = await popup.locator("#jobs").innerText();
 console.log("popup jobs:", jobsText.replace(/\n/g, " | "));
+// The "MP3 ready" notification is shown and then removed after 30 s.
+const notes = () => popup.evaluate(() => new Promise((r) => chrome.notifications.getAll((n) => r(Object.keys(n)))));
+let shown = [];
+for (let i = 0; i < 10 && !shown.length; i++) { shown = await notes(); if (!shown.length) await popup.waitForTimeout(500); }
+console.log("notifications shown:", shown.length);
+if (!shown.length) fail("no completion notification");
+await popup.waitForTimeout(33000);
+const left = await notes();
+console.log("notifications after 33 s:", left.length);
+if (left.length) fail("notification was not removed after 30 s");
 const jobsDirPath = path.join(home, ".local", "share", "podcastmp3", "jobs");
 const vols = fs.readdirSync(jobsDirPath).filter((f) => f.endsWith(".json"))
   .map((f) => JSON.parse(fs.readFileSync(path.join(jobsDirPath, f), "utf8"))).sort((a, b) => a.id.localeCompare(b.id)).map((j) => j.volume);

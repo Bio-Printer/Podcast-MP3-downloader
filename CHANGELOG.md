@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5
+
+- The "MP3 ready" notification stays on screen for 30 seconds (Windows used
+  to hide it after about 5), and the progress window waits 30 seconds before
+  closing itself (was 8).
+- README: close all Podcast MP3 windows before unzipping an update; Edge can
+  stay open.
+
 ## 0.1.4
 
 - Volume boost: slider in the Edge popup (1x-2x, default 1.25x) and a

@@ -15,7 +15,7 @@ struct Settings {
     std::string tempoEngine = "rubberband";  // "rubberband" or "atempo"
     // Placeholders: {title} {channel} {date} {speed} {speedtag} {id}
     std::string fileNameTemplate = "{date} {channel} - {title}{speedtag}";
-    int autoCloseSeconds = 8;          // job window closes this long after success (0 = stay open)
+    int autoCloseSeconds = 30;         // job window closes this long after success (0 = stay open)
 };
 
 // %APPDATA%\PodcastMP3 on Windows, ~/.config/podcastmp3 on Linux.

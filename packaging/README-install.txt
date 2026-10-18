@@ -47,7 +47,10 @@ USING IT
 
 UPDATING TO A NEW VERSION
 -------------------------
-1. Close any open Podcast MP3 windows.
+1. Close every Podcast MP3 window: the main PodcastMP3.exe window and any
+   progress window (bottom-right of the screen). A running PodcastMP3.exe
+   can't be replaced, and the unzip program will say "being used by another
+   process". Edge can stay open; it does not need to be restarted.
 2. Unblock the new ZIP (step 1 above) and extract it into the same folder
    again. Choose "Replace the files in the destination" when Windows asks.
 3. That's it. The Edge extension notices the new files and reloads itself

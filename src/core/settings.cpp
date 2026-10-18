@@ -93,7 +93,9 @@ void normalizeSettings(Settings& s) {
     if (s.tempoEngine != "rubberband" && s.tempoEngine != "atempo") s.tempoEngine = "rubberband";
     if (trim(s.fileNameTemplate).empty() || s.fileNameTemplate == "{channel} - {title}{speedtag}")
         s.fileNameTemplate = Settings().fileNameTemplate;
-    if (s.autoCloseSeconds < 0 || s.autoCloseSeconds > 3600) s.autoCloseSeconds = 8;
+    // 8 was the default before 0.1.5; treat it as "use the current default".
+    if (s.autoCloseSeconds < 0 || s.autoCloseSeconds > 3600 || s.autoCloseSeconds == 8)
+        s.autoCloseSeconds = Settings().autoCloseSeconds;
     if (trim(s.outputDir).empty() || toPath(s.outputDir) == oldDefaultOutputDir())
         s.outputDir = pathToUtf8(defaultOutputDir());
 }

@@ -215,6 +215,10 @@ static void testSettings() {
     CHECK_EQ(s.bitrateKbps, 160);
     CHECK_EQ(s.tempoEngine, std::string("rubberband"));
     CHECK_EQ(s.volume, 1.25);
+    CHECK_EQ(s.autoCloseSeconds, 30);
+    applySettingsJson(s, R"({"autoCloseSeconds": 8})");
+    normalizeSettings(s);
+    CHECK_EQ(s.autoCloseSeconds, 30);
     applySettingsJson(s, R"({"volume": 1.5})");
     normalizeSettings(s);
     CHECK_EQ(s.volume, 1.5);

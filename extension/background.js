@@ -4,6 +4,7 @@
 importScripts("sites.js");
 
 const HOST = "com.bioprinter.podcastmp3";
+const NOTIFY_SECONDS = 30; // how long the "MP3 ready" notification stays on screen
 const DEFAULTS = { speed: 1.5, bitrateKbps: 192, volume: 1.25 };
 const MANIFEST = chrome.runtime.getManifest();
 const MY_VERSION = MANIFEST.version_name || MANIFEST.version;
@@ -99,7 +100,10 @@ function notifyFinished(j) {
     title: ok ? "MP3 ready" : j.state === "cancelled" ? "Download cancelled" : "MP3 download failed",
     message: (j.title || j.url) + (ok ? "\n" + j.message : "\n" + (j.error || "")),
     priority: ok ? 0 : 1,
+    // Windows would hide it after ~5 s; keep it up and remove it after 30 s.
+    requireInteraction: true,
   });
+  chrome.alarms.create("clear:job:" + j.id, { delayInMinutes: NOTIFY_SECONDS / 60 });
 }
 
 chrome.notifications.onClicked.addListener((id) => {
@@ -210,4 +214,5 @@ chrome.runtime.onStartup.addListener(() => {
 
 chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === "versionCheck") checkVersion();
+  else if (a.name.startsWith("clear:")) chrome.notifications.clear(a.name.slice(6));
 });
