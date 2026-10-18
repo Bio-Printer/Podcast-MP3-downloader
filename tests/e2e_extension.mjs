@@ -134,6 +134,15 @@ const vols = fs.readdirSync(jobsDirPath).filter((f) => f.endsWith(".json"))
 console.log("job volumes:", vols);
 if (JSON.stringify(vols) !== "[1.25,1.5]") fail("unexpected job volumes " + JSON.stringify(vols));
 
+// 6b. A news page with an embedded YouTube player: the toolbar button finds
+// the biggest embedded player and sends its canonical watch URL.
+await page.goto(`${base}/news.html`);
+await page.bringToFront();
+const sendReply = await popup.evaluate(() => new Promise((r) => chrome.runtime.sendMessage({ type: "sendTab" }, r)));
+console.log("embedded page ->", sendReply.ok, sendReply.job && sendReply.job.url);
+if (!sendReply.ok || sendReply.job.url !== "https://www.youtube.com/watch?v=jNQXAC9IVRw")
+  fail("embedded YouTube player not found: " + JSON.stringify(sendReply));
+
 // 7. "Unzip a new version over the old one": change the extension files on
 // disk and check that the extension notices and reloads itself.
 manifest.version = "0.1.99";

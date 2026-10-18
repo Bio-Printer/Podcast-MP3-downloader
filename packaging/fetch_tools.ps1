@@ -15,4 +15,12 @@ $dir = Get-ChildItem $tmp -Directory | Select-Object -First 1
 Copy-Item "$($dir.FullName)\bin\ffmpeg.exe" "$out\ffmpeg.exe" -Force
 Copy-Item "$($dir.FullName)\LICENSE.txt" "$out\ffmpeg-LICENSE.txt" -Force
 Remove-Item $tmp -Recurse -Force
+# JavaScript runtime yt-dlp needs for YouTube.
+$tmp = Join-Path $env:TEMP ("pmp3-deno-" + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $tmp | Out-Null
+Invoke-WebRequest "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip" -OutFile "$tmp\deno.zip"
+Expand-Archive "$tmp\deno.zip" -DestinationPath $tmp
+Copy-Item "$tmp\deno.exe" "$out\deno.exe" -Force
+Invoke-WebRequest "https://raw.githubusercontent.com/denoland/deno/main/LICENSE.md" -OutFile "$out\deno-LICENSE.txt"
+Remove-Item $tmp -Recurse -Force
 Get-ChildItem $out

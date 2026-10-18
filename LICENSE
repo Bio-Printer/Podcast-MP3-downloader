@@ -6,3 +6,4 @@ Third-party components keep their own licenses:
   - nlohmann/json (third_party/nlohmann) - MIT
   - yt-dlp (bundled in the Windows release) - Unlicense (public domain)
   - FFmpeg (bundled in the Windows release) - GPL v3 build from https://github.com/BtbN/FFmpeg-Builds
+  - Deno (bundled in the Windows release, used by yt-dlp for YouTube) - MIT

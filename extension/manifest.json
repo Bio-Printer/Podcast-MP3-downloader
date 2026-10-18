@@ -2,9 +2,9 @@
   "manifest_version": 3,
   "name": "Podcast MP3 Downloader",
   "short_name": "Podcast MP3",
-  "version": "0.1.5",
-  "version_name": "0.1.5 (build 20261018-1604)",
-  "description": "Middle-click a Rumble video to save its audio as an MP3 at your chosen playback speed.",
+  "version": "0.1.6",
+  "version_name": "0.1.6 (build 20261018-1614)",
+  "description": "Middle-click a Rumble or YouTube video (also YouTube players embedded on other sites) to save its audio as an MP3 at your chosen playback speed.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA33dLH4tmXW46KfV1BXjFTrNjUM09JWFWlDxWmLatTch2if3M88MMEyoyk/5wZslVdiweirEzQYT9SXwh8nCSavIwKbaoXSQBrMRIvrtI7R/0pmZpxSDX6n7rQ3tZMn3OcL/weHTM6MTHUXKt8ssAA2LAzX6rGGlL2KaSJ8pRot12/6uwg5x7QlEO0pmwlg/rsPgoab7MzcpZH/1iHSydgZJl4kImATwHPjWJb0yrL9QXtSDYLb0E0k/5YacUlEQBSHb192uF138ctcYPPAbRn49drA1QqcA4lHlAlnJFCGUYQ8QChS8wrE0PEFkDwoex4MvEW196kCkppq5M8qC0oQIDAQAB",
   "minimum_chrome_version": "116",
   "permissions": [
@@ -12,10 +12,14 @@
     "storage",
     "contextMenus",
     "notifications",
-    "alarms"
+    "alarms",
+    "scripting",
+    "activeTab"
   ],
   "host_permissions": [
-    "*://*.rumble.com/*"
+    "*://*.rumble.com/*",
+    "*://*.youtube.com/*",
+    "*://*.youtube-nocookie.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -38,7 +42,9 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.rumble.com/*"
+        "*://*.rumble.com/*",
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
       ],
       "js": [
         "sites.js",

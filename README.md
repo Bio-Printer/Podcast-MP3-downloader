@@ -1,6 +1,6 @@
 # Podcast MP3 Downloader
 
-Middle-click a Rumble video in Microsoft Edge and get its audio as an MP3 you can
+Middle-click a Rumble or YouTube video (also YouTube players embedded on other sites) in Microsoft Edge and get its audio as an MP3 you can
 play on your phone, already sped up to your preferred playback speed (default
 1.5x, pitch kept natural).
 

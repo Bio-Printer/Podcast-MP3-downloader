@@ -132,6 +132,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse(r);
         break;
       }
+      case "sendTab": {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        sendResponse(await sendTab(tab));
+        break;
+      }
       case "native":
         sendResponse(await native(msg.payload));
         break;
@@ -143,22 +148,43 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 // ---- toolbar shortcut and context menu ------------------------------------
+// Finds the video for a tab: the tab itself if it is a video page, else a
+// video player embedded in the page (e.g. a YouTube player on a news site),
+// else the page address itself (yt-dlp can often find the video in it).
+async function resolveTabVideo(tab) {
+  const title = tab.title || "";
+  if (PMP3Sites.isVideoUrl(tab.url || "")) return { url: PMP3Sites.cleanUrl(tab.url), title };
+  try {
+    // Allowed on any site because the user just clicked our button/menu/shortcut (activeTab).
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["sites.js"] });
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        const found = [];
+        for (const f of document.querySelectorAll("iframe, embed, object")) {
+          const src = f.src || f.getAttribute("data-src") || f.data || "";
+          if (!src || !PMP3Sites.isVideoUrl(src)) continue;
+          const r = f.getBoundingClientRect();
+          found.push({ url: PMP3Sites.cleanUrl(src), area: r.width * r.height });
+        }
+        found.sort((a, b) => b.area - a.area); // the biggest player is the main video
+        return found.map((f) => f.url);
+      },
+    });
+    const urls = (res && res.result) || [];
+    if (urls.length) return { url: urls[0], title, embedded: true, count: urls.length };
+  } catch (e) {
+    /* page we may not script (edge:// pages, store) */
+  }
+  if (/^https?:/i.test(tab.url || "")) return { url: tab.url, title, guessed: true };
+  return null;
+}
+
 async function sendTab(tab) {
   if (!tab) return { ok: false, error: "No tab" };
-  let url = PMP3Sites.isVideoUrl(tab.url || "") ? PMP3Sites.cleanUrl(tab.url) : null;
-  let title = tab.title || "";
-  if (!url) {
-    try {
-      const r = await chrome.tabs.sendMessage(tab.id, { type: "getPageVideo" });
-      if (r && r.url) {
-        url = r.url;
-        title = r.title || title;
-      }
-    } catch (e) {
-      /* no content script on this page */
-    }
-  }
-  if (!url) return { ok: false, error: "This page is not a Rumble video page." };
+  const found = await resolveTabVideo(tab);
+  if (!found) return { ok: false, error: "This tab does not show a web page with a video." };
+  const { url, title } = found;
   const reply = await startJob(url, title);
   const text = reply.ok ? [`MP3 download started at ${reply.speed}x`, title] : ["Podcast MP3 could not start", reply.error];
   chrome.tabs.sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }).catch(() => {});
@@ -178,13 +204,27 @@ function setupMenus() {
       id: "pmp3-link",
       title: "Download MP3 of this video",
       contexts: ["link"],
-      targetUrlPatterns: ["*://*.rumble.com/v*", "*://*.rumble.com/embed/*"],
+      targetUrlPatterns: [
+        "*://*.rumble.com/v*",
+        "*://*.rumble.com/embed/*",
+        "*://*.youtube.com/watch*",
+        "*://*.youtube.com/shorts/*",
+        "*://*.youtube.com/live/*",
+        "*://youtu.be/*",
+      ],
     });
     chrome.contextMenus.create({
       id: "pmp3-page",
       title: "Download MP3 of this video",
       contexts: ["page", "video"],
-      documentUrlPatterns: ["*://*.rumble.com/*"],
+      documentUrlPatterns: ["*://*.rumble.com/*", "*://*.youtube.com/*"],
+    });
+    // Right-click inside a YouTube player embedded on another site.
+    chrome.contextMenus.create({
+      id: "pmp3-frame",
+      title: "Download MP3 of this video",
+      contexts: ["frame"],
+      documentUrlPatterns: ["*://*.youtube.com/embed/*", "*://*.youtube-nocookie.com/embed/*", "*://*.rumble.com/embed/*"],
     });
   });
 }
@@ -195,6 +235,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       const text = reply.ok ? [`MP3 download started at ${reply.speed}x`, info.linkUrl] : ["Podcast MP3 could not start", reply.error];
       if (tab) chrome.tabs.sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }).catch(() => {});
     });
+  } else if (info.menuItemId === "pmp3-frame" && info.frameUrl && PMP3Sites.isVideoUrl(info.frameUrl)) {
+    startJob(PMP3Sites.cleanUrl(info.frameUrl), (tab && tab.title) || "");
   } else if (info.menuItemId === "pmp3-page") {
     sendTab(tab);
   }

@@ -108,6 +108,17 @@ static void testParseAndChoose() {
                          b, err));
     CHECK_EQ(b.formats[(size_t)chooseFormat(b)].id, std::string("big"));
 
+    // YouTube: original-language, non-DRC track wins over a dubbed or DRC copy.
+    VideoInfo yt;
+    CHECK(parseVideoInfo(R"J({"id":"x","title":"t","formats":[
+        {"format_id":"251-drc","vcodec":"none","acodec":"opus","abr":135,"language_preference":10,"format_note":"original (default), DRC"},
+        {"format_id":"251-1","vcodec":"none","acodec":"opus","abr":140,"language_preference":-1,"format_note":"Spanish"},
+        {"format_id":"140","vcodec":"none","acodec":"mp4a","abr":129,"language_preference":10,"format_note":"original (default)"},
+        {"format_id":"251","vcodec":"none","acodec":"opus","abr":133,"language_preference":10,"format_note":"original (default)"},
+        {"format_id":"18","vcodec":"avc1","acodec":"mp4a","height":360}]})J",
+                         yt, err));
+    CHECK_EQ(yt.formats[(size_t)chooseFormat(yt)].id, std::string("251"));
+
     VideoInfo none;
     CHECK(parseVideoInfo(R"({"id":"x","title":"t","formats":[{"format_id":"m","acodec":"none","vcodec":"avc1"}]})",
                          none, err));

@@ -17,4 +17,13 @@ if [ ! -f "$out/ffmpeg.exe" ] || [ "${REFRESH:-0}" = 1 ]; then
   mv "$tmp/LICENSE.txt" "$out/ffmpeg-LICENSE.txt"
   rm -rf "$tmp"
 fi
+if [ ! -f "$out/deno.exe" ] || [ "${REFRESH:-0}" = 1 ]; then
+  # JavaScript runtime yt-dlp needs for YouTube.
+  tmp="$(mktemp -d)"
+  curl -fsSL -o "$tmp/deno.zip" https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip
+  unzip -q -o "$tmp/deno.zip" deno.exe -d "$tmp"
+  mv "$tmp/deno.exe" "$out/deno.exe"
+  curl -fsSL -o "$out/deno-LICENSE.txt" https://raw.githubusercontent.com/denoland/deno/main/LICENSE.md
+  rm -rf "$tmp"
+fi
 ls -la "$out"

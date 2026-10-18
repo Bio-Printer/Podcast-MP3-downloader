@@ -24,4 +24,11 @@ cat > list.html <<'HTML'
 <a class="thumb" href="/v6test-episode-7.html" title="Test Episode 7"><img src="/thumb.jpg" width="320" height="180"></a>
 </body></html>
 HTML
+cat > news.html <<'HTML'
+<!doctype html><html><head><meta charset="utf-8"><title>News article with a YouTube video</title></head><body>
+<h1>Some news article</h1><p>Text...</p>
+<iframe width="200" height="113" src="https://www.youtube.com/embed/aaaaaaaaaaa?rel=0" title="small related video"></iframe>
+<iframe width="640" height="360" src="https://www.youtube.com/embed/jNQXAC9IVRw?feature=oembed" title="main video" allowfullscreen></iframe>
+</body></html>
+HTML
 exec python3 -m http.server 8765 --bind 127.0.0.1

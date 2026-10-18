@@ -289,6 +289,9 @@ JobStatus JobRunner::run() {
     int code = 0;
     std::vector<std::string> probeArgs = {ytdlp, "--ignore-config", "--no-playlist", "--playlist-items", "1",
                                           "-J", "--no-progress", req_.url};
+    // YouTube needs a JavaScript runtime to unlock its formats; we bundle Deno.
+    const std::string deno = denoPath();
+    if (!deno.empty()) probeArgs.insert(probeArgs.begin() + 1, {"--js-runtimes", "deno:" + deno});
     bool ok = runStep(probeArgs, [&probeJson](const std::string& l) { probeJson += l + "\n"; }, errText, code);
     // Sites behind Cloudflare sometimes refuse plain HTTP clients; yt-dlp can
     // present itself like a regular Chrome browser instead.
@@ -304,6 +307,10 @@ JobStatus JobRunner::run() {
     if (!ok) {
         if (code == -1)
             fail("Could not run yt-dlp (" + ytdlp + "): " + errText);
+        else if (errText.find("not a bot") != std::string::npos)
+            fail("YouTube asked to confirm this is not a bot. This happens now and then, mostly on shared or "
+                 "cloud internet connections. Wait a while and try again, or use \"Update yt-dlp\". Details: " +
+                 lastErrorLine(errText));
         else if (errText.find("403") != std::string::npos)
             fail("The site refused the request (HTTP 403, usually its bot protection). Open the video in Edge, "
                  "wait for it to play, then try again; if it keeps failing, use \"Update yt-dlp\". Details: " +
@@ -355,6 +362,7 @@ JobStatus JobRunner::run() {
         req_.url};
     if (toPath(ffmpeg).is_absolute()) dlArgs.insert(dlArgs.begin() + 1, {"--ffmpeg-location", ffmpeg});
     if (impersonate) dlArgs.insert(dlArgs.begin() + 1, {"--impersonate", "chrome"});
+    if (!deno.empty()) dlArgs.insert(dlArgs.begin() + 1, {"--js-runtimes", "deno:" + deno});
     ok = runStep(
         dlArgs,
         [&](const std::string& l) {

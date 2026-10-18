@@ -140,22 +140,7 @@ async function refreshJobs() {
 }
 
 $("sendTab").addEventListener("click", async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  let url = tab && PMP3Sites.isVideoUrl(tab.url || "") ? PMP3Sites.cleanUrl(tab.url) : null;
-  let title = (tab && tab.title) || "";
-  if (!url && tab) {
-    try {
-      const r = await chrome.tabs.sendMessage(tab.id, { type: "getPageVideo" });
-      if (r && r.url) ({ url, title } = { url: r.url, title: r.title || title });
-    } catch (e) {
-      /* not a Rumble page */
-    }
-  }
-  if (!url) {
-    notice("This tab is not showing a Rumble video. Open the video's own page, or middle-click a video thumbnail.");
-    return;
-  }
-  const reply = await bg({ type: "start", url, title });
+  const reply = await bg({ type: "sendTab" });
   if (!reply.ok) notice(escapeHtml(reply.error || "Could not start"));
   refreshJobs();
 });

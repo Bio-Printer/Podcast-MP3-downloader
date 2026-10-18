@@ -51,6 +51,8 @@ const double kVolumeMin = 0.5, kVolumeMax = 3.0;
 // falling back to the plain program name (searched on PATH).
 std::string ytDlpPath();
 std::string ffmpegPath();
+// Deno: the JavaScript runtime yt-dlp needs for YouTube. "" if not bundled/found.
+std::string denoPath();
 
 // Folder holding the unpacked Edge extension next to the program.
 fs::path extensionDir();

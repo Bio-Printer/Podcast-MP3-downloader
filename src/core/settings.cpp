@@ -154,6 +154,18 @@ static std::string findTool(const char* name) {
 std::string ytDlpPath() { return findTool("yt-dlp"); }
 std::string ffmpegPath() { return findTool("ffmpeg"); }
 
+std::string denoPath() {
+    std::string p = findTool("deno");
+    std::error_code ec;
+    if (toPath(p).is_absolute()) return p;
+#ifndef _WIN32
+    // Development on Linux: use a deno on PATH if there is one.
+    for (const char* dir : {"/usr/local/bin/", "/usr/bin/"})
+        if (fs::exists(fs::path(dir) / "deno", ec)) return std::string(dir) + "deno";
+#endif
+    return std::string();
+}
+
 fs::path extensionDir() { return executableDir() / "extension"; }
 
 }  // namespace pmp3

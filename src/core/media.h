@@ -19,9 +19,13 @@ struct FormatInfo {
     double tbr = 0;
     int height = 0;      // 0 = unknown
     double filesize = 0; // bytes, 0 = unknown
+    int languagePreference = -1;  // YouTube: 10 = original audio track, lower = dubbed
+    std::string note;             // format_note, e.g. "original (default)", "DRC"
 
     bool hasAudio() const { return acodec != "none"; }
     bool audioOnly() const { return hasAudio() && vcodec == "none"; }
+    // YouTube's "DRC" (dynamic range compressed) copies sound flatter.
+    bool isDrc() const;
 };
 
 struct VideoInfo {

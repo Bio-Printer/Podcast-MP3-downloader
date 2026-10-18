@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.6
+
+- YouTube: watch pages, Shorts, youtu.be links, thumbnails, and YouTube
+  players embedded on other web sites (middle-click inside the player).
+- "Download MP3 of this tab" (toolbar button, Alt+Shift+M, right-click) finds
+  a video player embedded in any page; if there is none it hands the page
+  address to yt-dlp, which can find many other embedded players.
+- Picks YouTube's original-language audio track and avoids the "DRC"
+  (dynamic range compressed) copies.
+- Bundles Deno (tools\deno.exe), the JavaScript runtime yt-dlp needs to read
+  YouTube.
+
 ## 0.1.5
 
 - The "MP3 ready" notification stays on screen for 30 seconds (Windows used

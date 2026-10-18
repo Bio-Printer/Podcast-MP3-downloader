@@ -83,6 +83,9 @@ bool parseVideoInfo(const std::string& text, VideoInfo& info, std::string& err) 
             fi.tbr = num(f, "tbr");
             fi.height = (int)num(f, "height");
             fi.filesize = num(f, "filesize");
+            if (f.contains("language_preference") && f["language_preference"].is_number())
+                fi.languagePreference = f["language_preference"].get<int>();
+            fi.note = str(f, "format_note");
             if (fi.filesize <= 0) fi.filesize = num(f, "filesize_approx");
             // Storyboards / image tracks are not media we can use.
             if (fi.ext == "mhtml" || startsWith(fi.protocol, "mhtml")) continue;
@@ -104,6 +107,10 @@ bool parseVideoInfo(const std::string& text, VideoInfo& info, std::string& err) 
     return true;
 }
 
+bool FormatInfo::isDrc() const {
+    return id.find("-drc") != std::string::npos || toLower(note).find("drc") != std::string::npos;
+}
+
 static int protocolPenalty(const FormatInfo& f) {
     // Plain HTTP downloads are fastest and most reliable; HLS/DASH next.
     if (f.protocol == "https" || f.protocol == "http" || f.protocol.empty()) return 0;
@@ -122,6 +129,15 @@ int chooseFormat(const VideoInfo& info) {
             continue;
         }
         const auto& b = info.formats[best];
+        // Original-language track first, then non-DRC, then bitrate.
+        if (f.languagePreference != b.languagePreference) {
+            if (f.languagePreference > b.languagePreference) best = i;
+            continue;
+        }
+        if (f.isDrc() != b.isDrc()) {
+            if (!f.isDrc()) best = i;
+            continue;
+        }
         double fa = f.abr > 0 ? f.abr : f.tbr, ba = b.abr > 0 ? b.abr : b.tbr;
         if (fa > ba || (fa == ba && protocolPenalty(f) < protocolPenalty(b))) best = i;
     }

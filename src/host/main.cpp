@@ -135,8 +135,10 @@ static int cmdDownload(const Options& o, bool quiet) {
 
 static int cmdInfo(const Options& o) {
     std::string json, err;
-    int code = runCapture({ytDlpPath(), "--ignore-config", "--no-playlist", "--playlist-items", "1", "-J", o.url},
-                          json, err);
+    std::vector<std::string> args = {ytDlpPath(), "--ignore-config", "--no-playlist", "--playlist-items", "1", "-J",
+                                     o.url};
+    if (!denoPath().empty()) args.insert(args.begin() + 1, {"--js-runtimes", "deno:" + denoPath()});
+    int code = runCapture(args, json, err);
     if (code != 0) {
         out("yt-dlp failed:\n" + err + "\n");
         return 1;
@@ -175,6 +177,7 @@ static int realMain(const std::vector<std::string>& a) {
         out(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + "\n");
         out("yt-dlp: " + ytDlpPath() + " " + ytDlpVersion() + "\n");
         out("ffmpeg: " + ffmpegPath() + " " + ffmpegVersion() + "\n");
+        out("deno:   " + (denoPath().empty() ? std::string("(not found - YouTube may not work)") : denoPath()) + "\n");
         out("extension on disk: " + extensionVersionOnDisk() + "\n");
         return 0;
     }

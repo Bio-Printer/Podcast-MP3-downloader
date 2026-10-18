@@ -33,11 +33,13 @@ USING IT
 - Click the toolbar button to choose the speed (1x ... 2.5x, default 1.5x),
   the volume boost (slider, 1x ... 2x, default 1.25x) and quality.
   Your choices are remembered.
-- On rumble.com, MIDDLE-CLICK a playing video, or the thumbnail of any
-  video, to save its MP3. A small window shows progress and closes itself
+- On rumble.com or youtube.com, MIDDLE-CLICK a playing video, or the
+  thumbnail of any video, to save its MP3. This also works on a YouTube
+  player embedded in another web site (a news article, a blog). A small window shows progress and closes itself
   when done.
 - Other ways: right-click > "Download MP3 of this video", the toolbar
-  button's "Download MP3 of this tab", or Alt+Shift+M.
+  button's "Download MP3 of this tab", or Alt+Shift+M. On a page that only
+  has an embedded player, "Download MP3 of this tab" finds the player.
 - Or paste a link into PodcastMP3.exe directly (no Edge needed).
 - MP3 files go to   C:\Tmp\Audio   (change it in PodcastMP3.exe), named
   like   2026-10-15 Channel - Title (1.5x).mp3   (the video's publish date;
