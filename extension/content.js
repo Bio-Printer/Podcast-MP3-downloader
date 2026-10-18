@@ -4,8 +4,14 @@
 /* global PMP3Sites, chrome */
 (function () {
   "use strict";
-  if (window.__pmp3Loaded) return;
-  window.__pmp3Loaded = true;
+  // Each copy of this script gets a token. When the extension is updated,
+  // the copy already running in an open page is cut off from the extension
+  // but keeps receiving clicks; a newer copy tells it to step aside.
+  const myToken = chrome.runtime.id + ":" + chrome.runtime.getManifest().version_name + ":" + Math.random();
+  if (window.__pmp3Token && window.__pmp3TokenVersion === chrome.runtime.getManifest().version_name) return;
+  window.__pmp3Token = myToken;
+  window.__pmp3TokenVersion = chrome.runtime.getManifest().version_name;
+  document.dispatchEvent(new CustomEvent("pmp3-takeover"));
 
   let suppressUntil = 0;
 
@@ -101,23 +107,53 @@
     if (!sticky) toastTimer = setTimeout(() => (toastHost.style.display = "none"), kind === "error" ? 9000 : 5000);
   }
 
+  // False once the extension was updated or removed (this copy is orphaned).
+  function connected() {
+    try {
+      return !!(chrome.runtime && chrome.runtime.id);
+    } catch (e) {
+      return false;
+    }
+  }
+
   function send(target) {
     toast(["Sending to Podcast MP3...", target.title || target.url], "busy", true);
-    chrome.runtime.sendMessage({ type: "start", url: target.url, title: target.title }, (reply) => {
-      if (chrome.runtime.lastError || !reply) {
-        toast(["Podcast MP3: extension error", (chrome.runtime.lastError || {}).message || "no reply"], "error");
-        return;
-      }
-      if (reply.ok) {
-        toast([`MP3 download started at ${reply.speed}x`, target.title || target.url], "");
-      } else {
-        toast(["Podcast MP3 could not start", reply.error || "unknown error"], "error");
-      }
-    });
+    let answered = false;
+    const noAnswer = setTimeout(() => {
+      if (!answered)
+        toast(["Podcast MP3 did not answer", "Reload this page (F5) and middle-click the video again."], "error");
+    }, 20000);
+    try {
+      chrome.runtime.sendMessage({ type: "start", url: target.url, title: target.title }, (reply) => {
+        answered = true;
+        clearTimeout(noAnswer);
+        handleReply(target, reply);
+      });
+    } catch (e) {
+      answered = true;
+      clearTimeout(noAnswer);
+      toast(["Podcast MP3 was updated", "Reload this page (F5) and middle-click the video again."], "error");
+    }
+  }
+
+  function handleReply(target, reply) {
+    if (chrome.runtime.lastError || !reply) {
+      toast(["Podcast MP3: extension error", (chrome.runtime.lastError || {}).message || "no reply"], "error");
+      return;
+    }
+    if (reply.ok) {
+      toast([`MP3 download started at ${reply.speed}x`, target.title || target.url], "");
+    } else {
+      toast(["Podcast MP3 could not start", reply.error || "unknown error"], "error");
+    }
   }
 
   function onMouseDown(e) {
     if (e.button !== 1) return;
+    if (!connected()) {
+      detach(); // let a newer copy (or the page) handle the click
+      return;
+    }
     const target = findTarget(e);
     if (!target) return;
     // Stop the browser's auto-scroll and the page's own middle-click handling.
@@ -139,6 +175,19 @@
   window.addEventListener("auxclick", swallow, true);
   window.addEventListener("click", swallow, true);
   window.addEventListener("mouseup", swallow, true);
+
+  function detach() {
+    window.removeEventListener("mousedown", onMouseDown, true);
+    window.removeEventListener("auxclick", swallow, true);
+    window.removeEventListener("click", swallow, true);
+    window.removeEventListener("mouseup", swallow, true);
+    document.removeEventListener("pmp3-takeover", onTakeover);
+  }
+  // A newer copy of this script has loaded into the page: step aside.
+  function onTakeover() {
+    if (window.__pmp3Token !== myToken) detach();
+  }
+  document.addEventListener("pmp3-takeover", onTakeover);
 
   // The background script asks for the page's video when the keyboard
   // shortcut or the toolbar button is used.

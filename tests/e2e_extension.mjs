@@ -143,6 +143,9 @@ console.log("embedded page ->", sendReply.ok, sendReply.job && sendReply.job.url
 if (!sendReply.ok || sendReply.job.url !== "https://www.youtube.com/watch?v=jNQXAC9IVRw")
   fail("embedded YouTube player not found: " + JSON.stringify(sendReply));
 
+// A video page that stays open while the extension updates itself (step 8).
+await page.goto(`${base}/v6test-episode-7.html`);
+
 // 7. "Unzip a new version over the old one": change the extension files on
 // disk and check that the extension notices and reloads itself.
 manifest.version = "0.1.99";
@@ -165,6 +168,22 @@ while (Date.now() - t0 < 20000 && !reloaded) {
 }
 if (!reloaded) fail("extension did not reload itself after the files on disk changed");
 console.log("self-reload OK ->", reloaded);
+
+// 8. Middle-click on a page that was opened BEFORE the update (no page reload).
+// The old page script is cut off from the extension; the new one must take over.
+const jobsDir2 = path.join(home, ".local", "share", "podcastmp3", "jobs");
+const countJobs = () => fs.readdirSync(jobsDir2).filter((f) => f.endsWith(".json")).length;
+const before = countJobs();
+await page.waitForTimeout(2000);
+const vb = await page.locator("video").boundingBox();
+await page.mouse.click(vb.x + vb.width / 2, vb.y + vb.height / 2, { button: "middle" });
+await page.waitForTimeout(4000);
+const toastText = await page.evaluate(() => {
+  for (const d of document.querySelectorAll("div")) if (d.shadowRoot && d.shadowRoot.querySelector(".m")) return d.shadowRoot.querySelector(".m").textContent;
+  return "";
+});
+console.log("after update: toast =", JSON.stringify(toastText), "new jobs =", countJobs() - before);
+if (countJobs() - before !== 1) fail("middle-click after an extension update did not start exactly one job");
 
 await context.close();
 fs.rmSync(link, { force: true });

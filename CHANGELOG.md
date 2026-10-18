@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.8
+
+- Fix: after the extension updated itself, middle-click on a page that was
+  already open showed "Sending to Podcast MP3..." forever and nothing
+  happened. The outdated page script now steps aside for the new one.
+- If the extension ever doesn't answer within 20 seconds, the message says
+  so and suggests reloading the page, instead of "Sending..." forever.
+
 ## 0.1.7
 
 - Middle-click now works on YouTube players embedded in other sites before
