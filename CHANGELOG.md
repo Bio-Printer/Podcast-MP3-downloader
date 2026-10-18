@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.9
+
+- Pages with several embedded videos: Alt+Shift+M, the toolbar button and
+  right-click > "Download MP3 of this video" show a chooser on the page with
+  the videos sorted by size (largest first). The selected video is outlined
+  in green and scrolled into view. (Middle-click still takes the video under
+  the pointer directly.)
+- Progress window: a click anywhere in it (text, progress bar, title bar)
+  stops the auto-close countdown; it then stays until you close it.
+
 ## 0.1.8
 
 - Fix: after the extension updated itself, middle-click on a page that was

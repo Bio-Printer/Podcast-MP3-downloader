@@ -39,7 +39,11 @@ USING IT
   when done.
 - Other ways: right-click > "Download MP3 of this video", the toolbar
   button's "Download MP3 of this tab", or Alt+Shift+M. On a page that only
-  has an embedded player, "Download MP3 of this tab" finds the player.
+  has an embedded player, "Download MP3 of this tab" finds the player; if
+  the page has several, a box lists them by size so you can pick one (the
+  selected one is outlined in green).
+- The progress window closes itself 30 seconds after finishing. Click
+  anywhere in it to keep it open.
 - Or paste a link into PodcastMP3.exe directly (no Edge needed).
 - MP3 files go to   C:\Tmp\Audio   (change it in PodcastMP3.exe), named
   like   2026-10-15 Channel - Title (1.5x).mp3   (the video's publish date;

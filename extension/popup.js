@@ -142,6 +142,12 @@ async function refreshJobs() {
 $("sendTab").addEventListener("click", async () => {
   const reply = await bg({ type: "sendTab" });
   if (!reply.ok) notice(escapeHtml(reply.error || "Could not start"));
+  else if (reply.choosing) {
+    // The chooser is on the page; get out of its way.
+    notice(`This page has ${reply.count} videos. Pick one in the box on the page.`);
+    setTimeout(() => window.close(), 1200);
+    return;
+  }
   refreshJobs();
 });
 

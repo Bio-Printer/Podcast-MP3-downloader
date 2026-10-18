@@ -161,18 +161,33 @@ async function resolveTabVideo(tab) {
       target: { tabId: tab.id },
       func: () => {
         const found = [];
+        const seen = new Set();
+        let index = -1;
         for (const f of document.querySelectorAll("iframe, embed, object")) {
+          index++;
           const src = f.src || f.getAttribute("data-src") || f.data || "";
           if (!src || !PMP3Sites.isVideoUrl(src)) continue;
+          const url = PMP3Sites.cleanUrl(src);
+          if (seen.has(url)) continue; // the same video embedded twice
+          seen.add(url);
           const r = f.getBoundingClientRect();
-          found.push({ url: PMP3Sites.cleanUrl(src), area: r.width * r.height });
+          const site = PMP3Sites.siteForUrl(src);
+          found.push({
+            url,
+            index, // position among iframe/embed/object, used to outline it
+            title: (f.getAttribute("title") || "").trim(),
+            site: site ? site.name : "",
+            width: Math.round(r.width),
+            height: Math.round(r.height),
+          });
         }
-        found.sort((a, b) => b.area - a.area); // the biggest player is the main video
-        return found.map((f) => f.url);
+        found.sort((a, b) => b.width * b.height - a.width * a.height); // biggest first
+        return found;
       },
     });
-    const urls = (res && res.result) || [];
-    if (urls.length) return { url: urls[0], title, embedded: true, count: urls.length };
+    const videos = (res && res.result) || [];
+    if (videos.length === 1) return { url: videos[0].url, title: videos[0].title || title, embedded: true };
+    if (videos.length > 1) return { choices: videos, title };
   } catch (e) {
     /* page we may not script (edge:// pages, store) */
   }
@@ -180,10 +195,91 @@ async function resolveTabVideo(tab) {
   return null;
 }
 
+// Shown in the page when it has several videos: a drop-down sorted by size
+// (largest first); the selected player is outlined so it is clear which is
+// which. Runs inside the page, so it must not use anything from this file.
+function showVideoChooser(videos, speed) {
+  const old = document.getElementById("pmp3-chooser");
+  if (old) old.remove();
+  const frames = document.querySelectorAll("iframe, embed, object");
+  let outlined = null;
+  const outline = (v) => {
+    if (outlined) {
+      outlined.el.style.outline = outlined.prev;
+      outlined = null;
+    }
+    const el = v && frames[v.index];
+    if (!el) return;
+    outlined = { el, prev: el.style.outline };
+    el.style.outline = "5px solid #34a046";
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
+  const host = document.createElement("div");
+  host.id = "pmp3-chooser";
+  host.style.cssText = "all:initial;position:fixed;z-index:2147483647;top:16px;right:16px;";
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <style>
+      .b { font: 14px/1.4 "Segoe UI", system-ui, sans-serif; color: #fff; background: #1f2a22; width: 420px;
+           border-left: 5px solid #34a046; border-radius: 8px; padding: 12px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.4); }
+      .h { font-weight: 600; margin-bottom: 8px; }
+      select { width: 100%; font: inherit; padding: 5px; border-radius: 6px; margin-bottom: 10px; }
+      .r { display: flex; gap: 8px; justify-content: flex-end; }
+      button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 0; cursor: pointer; }
+      .go { background: #34a046; color: #fff; font-weight: 600; }
+      .no { background: #3a463d; color: #fff; }
+      .s { font-size: 12px; opacity: .8; margin-top: 8px; }
+    </style>
+    <div class="b">
+      <div class="h">🎧 This page has ${videos.length} videos. Which one?</div>
+      <select size="1"></select>
+      <div class="r"><button class="no">Cancel</button><button class="go">Download MP3 at ${speed}x</button></div>
+      <div class="s">Sorted by size, largest first. The selected video is outlined in green.</div>
+    </div>`;
+  const sel = root.querySelector("select");
+  videos.forEach((v, i) => {
+    const o = document.createElement("option");
+    const id = (v.url.match(/[?&]v=([\w-]+)/) || v.url.match(/embed\/(\w+)/) || [])[1] || "";
+    const name = v.title || `${v.site || "Video"} ${id}`;
+    o.textContent = `${i + 1}. ${name.length > 60 ? name.slice(0, 60) + "..." : name}  (${v.width}x${v.height}${i === 0 ? ", largest" : ""})`;
+    o.value = String(i);
+    sel.appendChild(o);
+  });
+  const close = () => {
+    outline(null);
+    host.remove();
+    document.removeEventListener("keydown", onKey, true);
+  };
+  const onKey = (e) => {
+    if (e.key === "Escape") close();
+  };
+  document.addEventListener("keydown", onKey, true);
+  sel.addEventListener("change", () => outline(videos[Number(sel.value)]));
+  root.querySelector(".no").addEventListener("click", close);
+  root.querySelector(".go").addEventListener("click", () => {
+    const v = videos[Number(sel.value)];
+    root.querySelector(".r").remove();
+    sel.disabled = true;
+    root.querySelector(".s").textContent = "Sending to Podcast MP3...";
+    chrome.runtime.sendMessage({ type: "start", url: v.url, title: v.title }, (reply) => {
+      root.querySelector(".s").textContent =
+        reply && reply.ok ? `MP3 download started at ${reply.speed}x.` : "Could not start: " + ((reply && reply.error) || "no answer");
+      setTimeout(close, reply && reply.ok ? 3000 : 9000);
+    });
+  });
+  (document.body || document.documentElement).appendChild(host);
+  outline(videos[0]);
+}
+
 async function sendTab(tab) {
   if (!tab) return { ok: false, error: "No tab" };
   const found = await resolveTabVideo(tab);
   if (!found) return { ok: false, error: "This tab does not show a web page with a video." };
+  if (found.choices) {
+    const p = await prefs();
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: showVideoChooser, args: [found.choices, p.speed] });
+    return { ok: true, choosing: true, count: found.choices.length };
+  }
   const { url, title } = found;
   const reply = await startJob(url, title);
   const text = reply.ok ? [`MP3 download started at ${reply.speed}x`, title] : ["Podcast MP3 could not start", reply.error];

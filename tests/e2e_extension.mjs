@@ -134,14 +134,40 @@ const vols = fs.readdirSync(jobsDirPath).filter((f) => f.endsWith(".json"))
 console.log("job volumes:", vols);
 if (JSON.stringify(vols) !== "[1.25,1.5]") fail("unexpected job volumes " + JSON.stringify(vols));
 
-// 6b. A news page with an embedded YouTube player: the toolbar button finds
-// the biggest embedded player and sends its canonical watch URL.
+// 6b. A news page with two embedded YouTube players: the toolbar button
+// shows a chooser on the page (largest first, outlined); picking the second
+// one downloads exactly that video.
 await page.goto(`${base}/news.html`);
 await page.bringToFront();
 const sendReply = await popup.evaluate(() => new Promise((r) => chrome.runtime.sendMessage({ type: "sendTab" }, r)));
-console.log("embedded page ->", sendReply.ok, sendReply.job && sendReply.job.url);
-if (!sendReply.ok || sendReply.job.url !== "https://www.youtube.com/watch?v=jNQXAC9IVRw")
-  fail("embedded YouTube player not found: " + JSON.stringify(sendReply));
+console.log("embedded page ->", JSON.stringify(sendReply));
+if (!sendReply.ok || !sendReply.choosing || sendReply.count !== 2) fail("expected a chooser for 2 videos");
+await page.waitForTimeout(800);
+const chooser = await page.evaluate(() => {
+  const h = document.getElementById("pmp3-chooser");
+  if (!h) return null;
+  const opts = [...h.shadowRoot.querySelectorAll("option")].map((o) => o.textContent);
+  const outlined = [...document.querySelectorAll("iframe")].map((f) => f.style.outline);
+  return { opts, outlined };
+});
+console.log("chooser:", JSON.stringify(chooser));
+if (!chooser || !/^1\. main video .*largest/.test(chooser.opts[0]) || !/^2\. small related video/.test(chooser.opts[1]))
+  fail("chooser not shown or not sorted by size");
+await page.screenshot({ path: path.join(shots, "5-chooser.png") });
+const jobsBeforePick = fs.readdirSync(path.join(home, ".local/share/podcastmp3/jobs")).length;
+await page.evaluate(() => {
+  const r = document.getElementById("pmp3-chooser").shadowRoot;
+  const sel = r.querySelector("select");
+  sel.value = "1";
+  sel.dispatchEvent(new Event("change"));
+  r.querySelector(".go").click();
+});
+await page.waitForTimeout(2500);
+const picked = fs.readdirSync(path.join(home, ".local/share/podcastmp3/jobs")).filter((f) => f.endsWith(".json"))
+  .map((f) => JSON.parse(fs.readFileSync(path.join(home, ".local/share/podcastmp3/jobs", f), "utf8")))
+  .sort((a, b) => b.id.localeCompare(a.id))[0];
+console.log("picked ->", picked.url, "outline on:", await page.evaluate(() => [...document.querySelectorAll("iframe")].map((f) => f.style.outline || "-")));
+if (picked.url !== "https://www.youtube.com/watch?v=aaaaaaaaaaa") fail("chooser did not download the selected video");
 
 // A video page that stays open while the extension updates itself (step 8).
 await page.goto(`${base}/v6test-episode-7.html`);

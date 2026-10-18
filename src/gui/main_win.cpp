@@ -483,6 +483,7 @@ void stopAutoClose() {
         KillTimer(g.hwnd, kAutoCloseTimer);
         g.closeCountdown = 0;
         onStatus(g.last);
+        setText(IDC_STATUS, g.last.message + "   (kept open - close it when you are done)");
     }
 }
 
@@ -569,6 +570,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             }
             return 0;
         }
+        // A click anywhere in the window (also on the text or the progress
+        // bar, or on the title bar) stops the countdown so it stays open.
+        case WM_LBUTTONDOWN:
+        case WM_RBUTTONDOWN:
+            if (g.jobMode) stopAutoClose();
+            return 0;
+        case WM_PARENTNOTIFY:
+            if (g.jobMode && (LOWORD(wp) == WM_LBUTTONDOWN || LOWORD(wp) == WM_RBUTTONDOWN)) stopAutoClose();
+            return 0;
+        case WM_NCLBUTTONDOWN:
+            if (g.jobMode) stopAutoClose();
+            break;  // keep normal title-bar behaviour (moving the window)
         case WM_TIMER:
             if (wp == kAutoCloseTimer) {
                 if (--g.closeCountdown <= 0) {
@@ -576,7 +589,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                     DestroyWindow(hwnd);
                 } else {
                     setText(IDC_STATUS, g.last.message + "   (closing in " + std::to_string(g.closeCountdown) +
-                                            "s - click any button to keep open)");
+                                            "s - click anywhere in this window to keep it open)");
                 }
             }
             return 0;
