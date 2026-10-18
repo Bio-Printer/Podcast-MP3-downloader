@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.11
+
+- Visual Studio 2026 build fix: "CVT1100 duplicate resource type:MANIFEST"
+  and "LNK1123". The .rc files no longer embed the manifest when built with
+  Visual Studio (PMP3_NO_RC_MANIFEST); the project hands app.manifest to
+  Visual Studio's manifest tool instead. Same fix for CMake + MSVC.
+
 ## 0.1.10
 
 - Video chooser shows every video at once (no drop-down to open), each with

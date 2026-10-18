@@ -4,7 +4,12 @@
 #include "../core/version.h"
 
 IDI_APP ICON "../../assets/app.ico"
+// MinGW embeds the manifest here. Visual Studio's linker makes its own
+// manifest resource, so there the project passes app.manifest to the
+// manifest tool instead and defines PMP3_NO_RC_MANIFEST (two would clash).
+#ifndef PMP3_NO_RC_MANIFEST
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "app.manifest"
+#endif
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION PMP3_VERSION_MAJOR, PMP3_VERSION_MINOR, PMP3_VERSION_PATCH, 0

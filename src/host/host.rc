@@ -4,7 +4,10 @@
 #include "../core/version.h"
 
 1 ICON "../../assets/app.ico"
+// See gui.rc: Visual Studio embeds the manifest itself.
+#ifndef PMP3_NO_RC_MANIFEST
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "../gui/app.manifest"
+#endif
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION PMP3_VERSION_MAJOR, PMP3_VERSION_MINOR, PMP3_VERSION_PATCH, 0

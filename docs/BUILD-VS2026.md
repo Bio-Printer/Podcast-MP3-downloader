@@ -24,6 +24,15 @@ The programs use the static C++ runtime (`/MT`), so they run on any Windows
 If Visual Studio offers to "retarget" the projects to a newer toolset or SDK,
 accept it.
 
+## About the program manifest
+
+`src/gui/app.manifest` (modern controls, DPI awareness, UTF-8, runs without
+admin rights) is embedded differently per compiler: MinGW takes it from the
+`.rc` files; Visual Studio merges it with its manifest tool
+(Project > Properties > Manifest Tool > Additional Manifest Files), and the
+`.rc` files skip it there because `PMP3_NO_RC_MANIFEST` is defined. Having it
+in both places causes "CVT1100 duplicate resource type:MANIFEST".
+
 ## Get yt-dlp and ffmpeg
 
 ```

@@ -93,13 +93,21 @@ def vcxproj(p):
             a('    <Link>')
             a(f'      <SubSystem>{p["subsystem"]}</SubSystem>')
             a('      <GenerateDebugInformation>true</GenerateDebugInformation>')
-            # The .rc file already embeds app.manifest (common controls v6, DPI awareness).
-            a('      <GenerateManifest>false</GenerateManifest>')
+            # app.manifest (common controls v6, DPI awareness, asInvoker) is
+            # merged in by the manifest tool below; it already says asInvoker,
+            # so the linker must not add its own UAC section as well.
+            a('      <EnableUAC>false</EnableUAC>')
             a(f'      <AdditionalDependencies>{p["libs"]};%(AdditionalDependencies)</AdditionalDependencies>')
             if c == "Release":
                 a('      <EnableCOMDATFolding>true</EnableCOMDATFolding>')
                 a('      <OptimizeReferences>true</OptimizeReferences>')
             a('    </Link>')
+            a('    <Manifest>')
+            a('      <AdditionalManifestFiles>$(SolutionDir)src\\gui\\app.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>')
+            a('    </Manifest>')
+            a('    <ResourceCompile>')
+            a('      <PreprocessorDefinitions>PMP3_NO_RC_MANIFEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>')
+            a('    </ResourceCompile>')
         if p.get("postbuild"):
             a('    <PostBuildEvent>')
             a('      <Message>Copying extension and bundled tools next to the program</Message>')
