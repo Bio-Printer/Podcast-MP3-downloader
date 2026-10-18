@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- If Rumble (Cloudflare) refuses the first request, the download is retried
+  automatically with yt-dlp presenting itself as a regular Chrome browser.
+
 ## 0.1.1
 
 - MP3 files are saved to `C:\Tmp\Audio` by default (created if missing).

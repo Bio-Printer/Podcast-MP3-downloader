@@ -287,9 +287,24 @@ JobStatus JobRunner::run() {
     std::vector<std::string> probeArgs = {ytdlp, "--ignore-config", "--no-playlist", "--playlist-items", "1",
                                           "-J", "--no-progress", req_.url};
     bool ok = runStep(probeArgs, [&probeJson](const std::string& l) { probeJson += l + "\n"; }, errText, code);
+    // Sites behind Cloudflare sometimes refuse plain HTTP clients; yt-dlp can
+    // present itself like a regular Chrome browser instead.
+    bool impersonate = false;
+    if (!ok && !cancelled_ && code != -1 &&
+        (errText.find("Cloudflare") != std::string::npos || errText.find("403") != std::string::npos)) {
+        log("Site refused the request; retrying as a regular browser (--impersonate chrome)");
+        impersonate = true;
+        probeJson.clear();
+        probeArgs.insert(probeArgs.begin() + 1, {"--impersonate", "chrome"});
+        ok = runStep(probeArgs, [&probeJson](const std::string& l) { probeJson += l + "\n"; }, errText, code);
+    }
     if (!ok) {
         if (code == -1)
             fail("Could not run yt-dlp (" + ytdlp + "): " + errText);
+        else if (errText.find("403") != std::string::npos)
+            fail("The site refused the request (HTTP 403, usually its bot protection). Open the video in Edge, "
+                 "wait for it to play, then try again; if it keeps failing, use \"Update yt-dlp\". Details: " +
+                 lastErrorLine(errText));
         else
             fail("Could not read the video page. " + lastErrorLine(errText));
         return status_;
@@ -336,6 +351,7 @@ JobStatus JobRunner::run() {
         "-o", pathToUtf8(tmp / "media.%(ext)s"), "-o", "thumbnail:" + pathToUtf8(tmp / "cover.%(ext)s"),
         req_.url};
     if (toPath(ffmpeg).is_absolute()) dlArgs.insert(dlArgs.begin() + 1, {"--ffmpeg-location", ffmpeg});
+    if (impersonate) dlArgs.insert(dlArgs.begin() + 1, {"--impersonate", "chrome"});
     ok = runStep(
         dlArgs,
         [&](const std::string& l) {
