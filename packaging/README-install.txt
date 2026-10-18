@@ -12,16 +12,18 @@ FIRST INSTALL (once)
 --------------------
 1. Right-click the downloaded ZIP > Properties > tick "Unblock" > OK.
    (Otherwise Windows may warn about every program in it.)
-2. Right-click the ZIP > Extract All... and type this folder:
-       C:\PodcastMP3
-   Use the same folder for every future version.
-3. Open C:\PodcastMP3 and double-click PodcastMP3.exe once.
+2. Extract the ZIP into the folder you want to keep the program in, e.g.
+       C:\Tmp\PodcastMP3
+   The ZIP has no folder of its own inside, so the files land directly
+   there. Use the same folder for every future version.
+3. Open that folder and double-click PodcastMP3.exe once.
    This connects the helper to Edge. The window's bottom line should say
    "Edge link OK". If Windows SmartScreen appears, click
    "More info" > "Run anyway" (the program is not code-signed).
 4. In Edge, go to   edge://extensions
    - Turn on "Developer mode" (left side or bottom).
-   - Click "Load unpacked" and choose   C:\PodcastMP3\extension
+   - Click "Load unpacked" and choose the "extension" folder inside it,
+     e.g.   C:\Tmp\PodcastMP3\extension
    - Optional: click the puzzle-piece icon on the toolbar and pin
      "Podcast MP3 Downloader" so its button is always visible.
 
@@ -45,8 +47,8 @@ USING IT
 UPDATING TO A NEW VERSION
 -------------------------
 1. Close any open Podcast MP3 windows.
-2. Unblock the new ZIP (step 1 above) and extract it to C:\PodcastMP3 again.
-   Choose "Replace the files in the destination" when Windows asks.
+2. Unblock the new ZIP (step 1 above) and extract it into the same folder
+   again. Choose "Replace the files in the destination" when Windows asks.
 3. That's it. The Edge extension notices the new files and reloads itself
    within a few minutes (or right away when you click its toolbar button).
    No uninstall, no new "Load unpacked".
@@ -58,7 +60,8 @@ CHECKING WHICH VERSION IS RUNNING
   build number, and "matched" when both are from the same release.
 - edge://extensions shows the same version text under the extension name.
 - PodcastMP3.exe: version in the title bar, the bottom line and "About".
-- Command line: C:\PodcastMP3\podcastmp3-host.exe --version
+- VERSION.txt in the program folder.
+- Command line: podcastmp3-host.exe --version  (in the program folder)
 
 
 IF SOMETHING GOES WRONG
@@ -68,6 +71,11 @@ IF SOMETHING GOES WRONG
   %LOCALAPPDATA%\PodcastMP3\logs). Sites change; "Update yt-dlp" in the
   popup or in PodcastMP3.exe usually fixes it.
 - Uninstall: in edge://extensions click Remove, run
-  "C:\PodcastMP3\podcastmp3-host.exe unregister", delete C:\PodcastMP3.
+  "podcastmp3-host.exe unregister" from the program folder, delete the folder.
 
-Source code: https://github.com/Bio-Printer/Podcast-MP3-downloader
+SOURCE CODE
+-----------
+The complete source of this exact build is in the "source" folder
+(open source\PodcastMP3.sln in Visual Studio 2026; see
+source\docs\BUILD-VS2026.md). Also at
+https://github.com/Bio-Printer/Podcast-MP3-downloader

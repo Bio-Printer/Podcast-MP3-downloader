@@ -23,8 +23,8 @@ speed and download date, and the source URL (`WOAS` and `TXXX:SOURCE_URL`).
 Download `PodcastMP3-vX.Y.Z-win64.zip` from
 [Releases](https://github.com/Bio-Printer/Podcast-MP3-downloader/releases) and
 follow `README.txt` inside it ([packaging/README-install.txt](packaging/README-install.txt)).
-In short: unzip to `C:\PodcastMP3`, run `PodcastMP3.exe` once, load
-`C:\PodcastMP3\extension` with **Load unpacked** in `edge://extensions`.
+In short: unzip to `C:\Tmp\PodcastMP3`, run `PodcastMP3.exe` once, load
+`C:\Tmp\PodcastMP3\extension` with **Load unpacked** in `edge://extensions`.
 To update, unzip the new ZIP over the same folder; the extension reloads itself.
 
 ## How it fits together

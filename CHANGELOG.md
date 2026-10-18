@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- One ZIP per release. Files are at the top level of the ZIP, so extracting
+  it into the install folder (e.g. `C:\Tmp\PodcastMP3`) updates everything in
+  place. The full source tree of the build is included in `source\`.
+
 ## 0.1.2
 
 - If Rumble (Cloudflare) refuses the first request, the download is retried

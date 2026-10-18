@@ -38,10 +38,10 @@ post-build step copies them to `build\vs\x64\<Configuration>\tools\`.
 Run `build\vs\x64\Release\PodcastMP3.exe` once. It registers itself with Edge.
 Then, in `edge://extensions`, **Load unpacked** either
 `build\vs\x64\Release\extension` (to test this build) or keep using
-`C:\PodcastMP3\extension` from a release.
+`C:\Tmp\PodcastMP3\extension` from a release.
 
 Only one copy is connected to Edge at a time: the last `PodcastMP3.exe` you
-started. Start `C:\PodcastMP3\PodcastMP3.exe` again to switch back.
+started. Start `C:\Tmp\PodcastMP3\PodcastMP3.exe` again to switch back.
 
 ## Make the release ZIP from a Visual Studio build
 

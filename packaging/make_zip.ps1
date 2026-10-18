@@ -20,6 +20,14 @@ Copy-Item "$root\third_party\nlohmann\LICENSE.MIT" "$stage\licenses\nlohmann-jso
 Copy-Item "$root\LICENSE" "$stage\licenses\PodcastMP3-LICENSE.txt"
 Copy-Item "$root\packaging\README-install.txt" "$stage\README.txt"
 Copy-Item "$root\CHANGELOG.md" "$stage\CHANGELOG.txt"
+# Full source tree in source\ (files git tracks, plus new files not ignored).
+Push-Location $root
+git ls-files --cached --others --exclude-standard | ForEach-Object {
+    $dest = Join-Path "$stage\source" $_
+    New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+    Copy-Item $_ $dest
+}
+Pop-Location
 & "$bin\podcastmp3-host.exe" --version | Out-File "$stage\VERSION.txt" -Encoding utf8
 $zip = "$root\dist\PodcastMP3-v$version-win64.zip"
 if (Test-Path $zip) { Remove-Item $zip }

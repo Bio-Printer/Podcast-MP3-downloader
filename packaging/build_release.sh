@@ -1,7 +1,9 @@
 #!/bin/bash
-# Builds a complete Windows release on Linux:
-#   dist/PodcastMP3-v<version>-win64.zip   unzip over C:\PodcastMP3 to install/update
-#   dist/PodcastMP3-v<version>-source.zip  the full source tree of this release
+# Builds a complete Windows release on Linux, as ONE zip:
+#   dist/PodcastMP3-v<version>-win64.zip
+# Its files sit at the top level (no wrapper folder), so extracting it into the
+# install folder (e.g. C:\Tmp\PodcastMP3) updates everything in place. The
+# full source tree of the build is inside it in source\.
 #
 # Needs: cmake, x86_64-w64-mingw32-g++-posix (apt: g++-mingw-w64-x86-64-posix),
 #        python3, zip, git; wine is optional (runs the unit tests on Windows code).
@@ -26,7 +28,7 @@ if command -v wine >/dev/null; then
 fi
 
 stage="dist/stage"
-rm -rf "$stage" && mkdir -p "$stage/tools" "$stage/licenses"
+rm -rf "$stage" && mkdir -p "$stage/tools" "$stage/licenses" "$stage/source"
 cp build/win/PodcastMP3.exe build/win/podcastmp3-host.exe "$stage/"
 cp packaging/thirdparty/yt-dlp.exe packaging/thirdparty/ffmpeg.exe "$stage/tools/"
 cp -r extension "$stage/extension"
@@ -46,18 +48,13 @@ ffv="$(LANG=C.UTF-8 WINEDEBUG=-all wine packaging/thirdparty/ffmpeg.exe -hide_ba
 sed 's/$/\r/' packaging/README-install.txt > "$stage/README.txt"
 sed 's/$/\r/' CHANGELOG.md > "$stage/CHANGELOG.txt"
 
+# The full source tree of this build goes inside the same ZIP, in "source\"
+# (a fixed name, so unzipping a newer release over the old one replaces it).
+git ls-files -z --cached --others --exclude-standard | xargs -0 -I{} cp --parents {} "$stage/source/"
+
 mkdir -p dist
 zipname="dist/PodcastMP3-v$version-win64.zip"
 rm -f "$zipname"
 (cd "$stage" && zip -q -r -9 "../../$zipname" .)
-# Source ZIP = every file git tracks or would track (respects .gitignore),
-# taken from the working tree so it matches exactly what was just built.
-srcname="dist/PodcastMP3-v$version-source.zip"
-rm -f "$srcname"
-srcstage="dist/src-stage/PodcastMP3-v$version-source"
-rm -rf dist/src-stage && mkdir -p "$srcstage"
-git ls-files -z --cached --others --exclude-standard | xargs -0 -I{} cp --parents {} "$srcstage/"
-(cd dist/src-stage && zip -q -r -9 "../../$srcname" .)
-rm -rf dist/src-stage
-ls -la dist/*.zip
+ls -la "$zipname"
 cat "$stage/VERSION.txt"

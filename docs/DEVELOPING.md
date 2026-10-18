@@ -41,11 +41,12 @@ PLAYWRIGHT_MODULE=/path/to/node_modules/playwright node tests/e2e_extension.mjs 
 BUILD_ID=$(date +%Y%m%d-%H%M) packaging/build_release.sh
 ```
 
-Produces `dist/PodcastMP3-v<version>-win64.zip` (unzip over `C:\PodcastMP3`)
-and `dist/PodcastMP3-v<version>-source.zip`.
+Produces one `dist/PodcastMP3-v<version>-win64.zip`: program files at the top
+level (unzip over the install folder, e.g. `C:\Tmp\PodcastMP3`) and the full
+source tree in `source/`.
 
 ## Releasing
 
 1. Bump `VERSION`, add a `CHANGELOG.md` entry.
 2. `packaging/build_release.sh` (stamps the version, builds, tests, zips).
-3. Commit, tag `vX.Y.Z`, push, attach both ZIPs to the GitHub release.
+3. Commit, tag `vX.Y.Z`, push, attach the ZIP to the GitHub release.
