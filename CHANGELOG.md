@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- MP3 files are saved to `C:\Tmp\Audio` by default (created if missing).
+- File names start with the video's publish date, e.g.
+  `2026-10-15 Channel - Title (1.5x).mp3` (today's date if the page has none).
+- Settings saved by 0.1.0 with the old defaults move to the new ones
+  automatically; a folder you chose yourself is kept.
+
 ## 0.1.0 - first release
 
 - Edge extension: middle-click a Rumble video or video thumbnail to save its

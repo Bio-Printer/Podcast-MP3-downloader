@@ -40,7 +40,7 @@ PodcastMP3.exe --job ...        small progress window, runs the job:
    ├─ yt-dlp -J <url>            read title/channel/date/formats
    ├─ yt-dlp -f <best audio, smallest video> --write-thumbnail
    ├─ ffmpeg rubberband=tempo=1.5 → libmp3lame 192k stereo + ID3 + cover
-   └─ add WOAS/COMM frames, move to Music\Podcasts
+   └─ add WOAS/COMM frames, move to C:\Tmp\Audio as "<date> <channel> - <title> (1.5x).mp3"
 Job status: %LOCALAPPDATA%\PodcastMP3\jobs\<id>.json (the popup reads these)
 ```
 

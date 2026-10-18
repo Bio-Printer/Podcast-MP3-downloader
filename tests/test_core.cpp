@@ -126,6 +126,11 @@ static void testFileName() {
     CHECK_EQ(buildFileName("{channel} - {title}{speedtag}", info, 1.5),
              std::string("Some Show - Episode 42- Big News (1.5x)"));
     CHECK_EQ(buildFileName("{channel} - {title}{speedtag}", info, 1.0), std::string("Some Show - Episode 42- Big News"));
+    CHECK_EQ(buildFileName(Settings().fileNameTemplate, info, 1.5),
+             std::string("2026-10-15 Some Show - Episode 42- Big News (1.5x)"));
+    info.uploadDate.clear();
+    CHECK(startsWith(buildFileName(Settings().fileNameTemplate, info, 1.5), nowLocalString().substr(0, 10) + " "));
+    info.uploadDate = "20261015";
     CHECK_EQ(buildFileName("{date} {title} [{speed}x]", info, 2.0), std::string("2026-10-15 Episode 42- Big News [2x]"));
 }
 
@@ -206,6 +211,11 @@ static void testSettings() {
     CHECK_EQ(s.bitrateKbps, 160);
     CHECK_EQ(s.tempoEngine, std::string("rubberband"));
     CHECK(!s.outputDir.empty());
+    CHECK(toPath(s.outputDir) == defaultOutputDir());
+    Settings old;
+    old.fileNameTemplate = "{channel} - {title}{speedtag}";
+    normalizeSettings(old);
+    CHECK_EQ(old.fileNameTemplate, Settings().fileNameTemplate);
 }
 
 // Builds a tiny file with an ID3v2.3 tag and checks the WOAS frame.

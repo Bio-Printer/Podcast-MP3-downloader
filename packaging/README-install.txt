@@ -36,7 +36,9 @@ USING IT
 - Other ways: right-click > "Download MP3 of this video", the toolbar
   button's "Download MP3 of this tab", or Alt+Shift+M.
 - Or paste a link into PodcastMP3.exe directly (no Edge needed).
-- MP3 files go to   Music\Podcasts   (change it in PodcastMP3.exe).
+- MP3 files go to   C:\Tmp\Audio   (change it in PodcastMP3.exe), named
+  like   2026-10-15 Channel - Title (1.5x).mp3   (the video's publish date;
+  today's date if the page does not give one).
 - Copy the MP3 files to your phone and play them with any media player.
 
 

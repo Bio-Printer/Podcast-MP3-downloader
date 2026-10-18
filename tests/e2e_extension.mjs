@@ -69,7 +69,7 @@ const { id: extId } = await cdp.send("Extensions.loadUnpacked", { path: ext });
 console.log("extension id", extId);
 if (extId !== "dbnhcdhaapecgdcdniigdkgdbhacblhm") fail("unexpected extension id " + extId);
 
-const outDir = path.join(home, "Music", "Podcasts");
+const outDir = path.join(home, "Tmp", "Audio");
 async function waitForMp3(count, timeoutMs = 120000) {
   const t0 = Date.now();
   while (Date.now() - t0 < timeoutMs) {

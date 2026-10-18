@@ -13,7 +13,7 @@ struct Settings {
     int bitrateKbps = 192;             // MP3 bitrate (stereo, 44.1 kHz)
     std::string tempoEngine = "rubberband";  // "rubberband" or "atempo"
     // Placeholders: {title} {channel} {date} {speed} {speedtag} {id}
-    std::string fileNameTemplate = "{channel} - {title}{speedtag}";
+    std::string fileNameTemplate = "{date} {channel} - {title}{speedtag}";
     int autoCloseSeconds = 8;          // job window closes this long after success (0 = stay open)
 };
 
@@ -25,7 +25,7 @@ fs::path jobsDir();
 fs::path tempRootDir();
 fs::path logsDir();
 
-// Music\Podcasts (Windows known folder), ~/Music/Podcasts elsewhere.
+// C:\Tmp\Audio on Windows, ~/Tmp/Audio elsewhere.
 fs::path defaultOutputDir();
 
 Settings loadSettings();

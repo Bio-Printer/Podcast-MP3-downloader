@@ -25,7 +25,7 @@ struct JobRequest {
     int bitrateKbps = 192;
     std::string outputDir;
     std::string tempoEngine = "rubberband";
-    std::string fileNameTemplate = "{channel} - {title}{speedtag}";
+    std::string fileNameTemplate = "{date} {channel} - {title}{speedtag}";
     std::string source = "app";  // "app", "extension", "cli"
 };
 

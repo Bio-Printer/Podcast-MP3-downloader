@@ -166,7 +166,9 @@ std::string buildFileName(const std::string& tmpl, const VideoInfo& info, double
     std::string name = tmpl;
     name = replaceAll(name, "{title}", info.title);
     name = replaceAll(name, "{channel}", channel);
-    name = replaceAll(name, "{date}", prettyDate(info.uploadDate));
+    // Pages without a publish date get today's date so names still sort.
+    std::string date = info.uploadDate.empty() ? nowLocalString().substr(0, 10) : prettyDate(info.uploadDate);
+    name = replaceAll(name, "{date}", date);
     name = replaceAll(name, "{id}", info.id);
     name = replaceAll(name, "{speed}", formatSpeed(speed));
     name = replaceAll(name, "{speedtag}", std::fabs(speed - 1.0) < 0.001 ? "" : " (" + formatSpeed(speed) + "x)");

@@ -65,6 +65,15 @@ fs::path logsDir() { return dataDir() / "logs"; }
 
 fs::path defaultOutputDir() {
 #ifdef _WIN32
+    return fs::path(L"C:\\Tmp\\Audio");
+#else
+    return homeDir() / "Tmp" / "Audio";
+#endif
+}
+
+// Defaults used by 0.1.0; settings still holding them move to the new ones.
+static fs::path oldDefaultOutputDir() {
+#ifdef _WIN32
     fs::path music = knownFolder(FOLDERID_Music);
     if (music.empty()) music = knownFolder(FOLDERID_Profile) / L"Music";
     return music / L"Podcasts";
@@ -78,9 +87,11 @@ void normalizeSettings(Settings& s) {
     s.speed = std::round(s.speed * 100.0) / 100.0;
     if (s.bitrateKbps < 64 || s.bitrateKbps > 320) s.bitrateKbps = 192;
     if (s.tempoEngine != "rubberband" && s.tempoEngine != "atempo") s.tempoEngine = "rubberband";
-    if (trim(s.fileNameTemplate).empty()) s.fileNameTemplate = "{channel} - {title}{speedtag}";
+    if (trim(s.fileNameTemplate).empty() || s.fileNameTemplate == "{channel} - {title}{speedtag}")
+        s.fileNameTemplate = Settings().fileNameTemplate;
     if (s.autoCloseSeconds < 0 || s.autoCloseSeconds > 3600) s.autoCloseSeconds = 8;
-    if (trim(s.outputDir).empty()) s.outputDir = pathToUtf8(defaultOutputDir());
+    if (trim(s.outputDir).empty() || toPath(s.outputDir) == oldDefaultOutputDir())
+        s.outputDir = pathToUtf8(defaultOutputDir());
 }
 
 std::string settingsToJson(const Settings& s) {
