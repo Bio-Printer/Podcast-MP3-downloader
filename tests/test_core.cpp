@@ -205,6 +205,22 @@ static void testNativeFraming() {
     CHECK(reply.find("\"ok\":false") != std::string::npos);
 }
 
+static void testCookies() {
+    int n = 0;
+    std::string t = netscapeCookiesFromJson(R"([
+        {"domain":".rumble.com","hostOnly":false,"path":"/","secure":true,"expirationDate":1800000000.5,"name":"cf_clearance","value":"abc"},
+        {"domain":"rumble.com","hostOnly":true,"path":"/","secure":false,"name":"sess","value":"x y"},
+        {"domain":"rumble.com","name":"bad\tname","value":"v"},
+        {"domain":"","name":"nodomain","value":"v"}])", n);
+    CHECK_EQ(n, 2);
+    CHECK(startsWith(t, "# Netscape HTTP Cookie File\n"));
+    CHECK(t.find(".rumble.com\tTRUE\t/\tTRUE\t1800000000\tcf_clearance\tabc\n") != std::string::npos);
+    CHECK(t.find("rumble.com\tFALSE\t/\tFALSE\t0\tsess\tx y\n") != std::string::npos);
+    CHECK(t.find("bad") == std::string::npos);
+    netscapeCookiesFromJson("not json", n);
+    CHECK_EQ(n, 0);
+}
+
 static void testJobStatusJson() {
     JobStatus s;
     s.id = "20261018-120000-abcdef";
@@ -286,6 +302,7 @@ int main() {
     testUrls();
     testNativeFraming();
     testJobStatusJson();
+    testCookies();
     testSettings();
     testId3();
     std::printf("%d passed, %d failed\n", g_passed, g_failed);

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.14
+
+- Rumble downloads use Edge's rumble.com cookies (including Cloudflare's
+  "passed the check" cookie) and Edge's User-Agent, so a computer whose
+  connection Cloudflare challenges is let in the same way Edge is. The
+  extension asks for the new "cookies" permission; it only reads rumble.com
+  cookies, only for Rumble downloads. The helper keeps them in a temporary
+  file in the job's private folder and deletes it when the job ends; logs
+  show only how many cookies were used, never their values. Not used for
+  YouTube (account cookies can get a YouTube account flagged).
+
 ## 0.1.13
 
 - README: how to switch between the official build ("Claude build") and your

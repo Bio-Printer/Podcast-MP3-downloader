@@ -99,6 +99,8 @@ JobRequest requestFromSettings(const Settings& s, const std::string& url) {
 
 fs::path jobStatusFile(const std::string& id) { return jobsDir() / toPath(id + ".json"); }
 fs::path jobCancelFile(const std::string& id) { return jobsDir() / toPath(id + ".cancel"); }
+fs::path jobCookieFile(const std::string& id) { return jobsDir() / toPath(id + ".cookies.txt"); }
+fs::path jobUserAgentFile(const std::string& id) { return jobsDir() / toPath(id + ".ua"); }
 
 std::vector<JobStatus> listRecentJobs(size_t max) {
     std::vector<JobStatus> jobs;
@@ -280,6 +282,32 @@ JobStatus JobRunner::run() {
         }
     } cleanup{tmp};
 
+    // Edge's cookies for the site (incl. Cloudflare's "passed the check"
+    // cookie) and Edge's User-Agent, so the site sees the same visitor.
+    std::vector<std::string> browserArgs;
+    {
+        fs::path handedOver = jobCookieFile(req_.id);
+        if (fs::exists(handedOver, ec)) {
+            fs::path cookies = tmp / "cookies.txt";
+            std::string mverr;
+            if (moveFile(handedOver, cookies, mverr)) {
+                std::string text;
+                readTextFile(cookies, text);
+                int n = 0;
+                for (size_t p = 0; (p = text.find('\n', p)) != std::string::npos; ++p) ++n;
+                n -= 1;  // header line
+                log("Using " + std::to_string(n) + " browser cookie(s) handed over by Edge");
+                browserArgs.insert(browserArgs.end(), {"--cookies", pathToUtf8(cookies)});
+            }
+        }
+        std::string ua;
+        if (readTextFile(jobUserAgentFile(req_.id), ua) && !trim(ua).empty()) {
+            log("Using Edge's User-Agent: " + trim(ua));
+            browserArgs.insert(browserArgs.end(), {"--user-agent", trim(ua)});
+        }
+        fs::remove(jobUserAgentFile(req_.id), ec);
+    }
+
     // ---- 1. Ask yt-dlp what is on the page ---------------------------
     status_.state = JobState::Probing;
     status_.message = "Reading video page...";
@@ -299,6 +327,7 @@ JobStatus JobRunner::run() {
     // YouTube needs a JavaScript runtime to unlock its formats; we bundle Deno.
     const std::string deno = denoPath();
     if (!deno.empty()) probeArgs.insert(probeArgs.begin() + 1, {"--js-runtimes", "deno:" + deno});
+    probeArgs.insert(probeArgs.begin() + 1, browserArgs.begin(), browserArgs.end());
     // Show what yt-dlp is doing ("Downloading webpage", "Solving JS challenges
     // using deno", ...) with a seconds counter, so a slow site does not look stuck.
     const auto probeStart = std::chrono::steady_clock::now();
@@ -393,6 +422,7 @@ JobStatus JobRunner::run() {
     if (toPath(ffmpeg).is_absolute()) dlArgs.insert(dlArgs.begin() + 1, {"--ffmpeg-location", ffmpeg});
     if (impersonate) dlArgs.insert(dlArgs.begin() + 1, {"--impersonate", "chrome"});
     if (!deno.empty()) dlArgs.insert(dlArgs.begin() + 1, {"--js-runtimes", "deno:" + deno});
+    dlArgs.insert(dlArgs.begin() + 1, browserArgs.begin(), browserArgs.end());
     ok = runStep(
         dlArgs,
         [&](const std::string& l) {

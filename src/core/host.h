@@ -13,6 +13,10 @@ bool readNativeMessage(std::istream& in, std::string& msg);
 void writeNativeMessage(std::ostream& out, const std::string& msg);
 std::string encodeNativeMessage(const std::string& msg);
 
+// Converts the extension's cookie list (JSON array of chrome.cookies objects)
+// to a Netscape cookies.txt file as yt-dlp reads it. Sets count.
+std::string netscapeCookiesFromJson(const std::string& jsonArray, int& count);
+
 // Handles one request from the extension and returns the JSON reply.
 std::string handleHostRequest(const std::string& requestJson);
 

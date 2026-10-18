@@ -58,9 +58,42 @@ async function checkVersion(reply) {
 let pollTimer = null;
 const known = {}; // jobId -> last state
 
+// Edge's cookies for a site (both the normal ones and those Edge keeps
+// separately for a site embedded in another site's page).
+async function siteCookies(domain) {
+  const out = [];
+  const seen = new Set();
+  const add = (list) => {
+    for (const c of list || []) {
+      const key = c.domain + "|" + c.path + "|" + c.name;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ domain: c.domain, hostOnly: c.hostOnly, path: c.path, secure: c.secure,
+                 expirationDate: c.expirationDate || 0, name: c.name, value: c.value });
+    }
+  };
+  try {
+    add(await chrome.cookies.getAll({ domain }));
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    add(await chrome.cookies.getAll({ domain, partitionKey: {} }));
+  } catch (e) {
+    /* older Edge: no partitioned cookies */
+  }
+  return out;
+}
+
 async function startJob(url, title) {
   const p = await prefs();
-  const reply = await native({ cmd: "start", url, title, speed: p.speed, bitrateKbps: p.bitrateKbps, volume: p.volume });
+  const msg = { cmd: "start", url, title, speed: p.speed, bitrateKbps: p.bitrateKbps, volume: p.volume };
+  const site = PMP3Sites.siteForUrl(url);
+  if (site && site.cookieDomain) {
+    msg.cookies = await siteCookies(site.cookieDomain);
+    msg.userAgent = navigator.userAgent;
+  }
+  const reply = await native(msg);
   if (reply.ok) {
     known[reply.jobId] = "queued";
     schedulePoll(1000);

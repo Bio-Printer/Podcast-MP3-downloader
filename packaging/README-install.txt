@@ -92,6 +92,10 @@ and your own build".
 
 IF SOMETHING GOES WRONG
 -----------------------
+- Rumble says "HTTP 403" / "bot protection": open rumble.com in Edge on
+  that computer, pass any "Verify you are human" check and play a video,
+  then try again. Podcast MP3 hands Edge's rumble.com cookies to the
+  download, so once Edge is let in, the download is too.
 - "Helper not connected" in the popup: run PodcastMP3.exe once.
 - A download fails: click "Show log" in the progress window (logs are in
   %LOCALAPPDATA%\PodcastMP3\logs). Sites change; "Update yt-dlp" in the

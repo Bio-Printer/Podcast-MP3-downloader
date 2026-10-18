@@ -60,6 +60,11 @@ JobRequest requestFromSettings(const Settings& s, const std::string& url);
 // running job to stop (written by the native host for the extension).
 fs::path jobStatusFile(const std::string& id);
 fs::path jobCancelFile(const std::string& id);
+// Browser cookies (Netscape cookies.txt) and the browser's User-Agent handed
+// over by the extension for sites behind Cloudflare (Rumble). The job moves
+// them into its private temp folder at start; they are deleted with it.
+fs::path jobCookieFile(const std::string& id);
+fs::path jobUserAgentFile(const std::string& id);
 std::vector<JobStatus> listRecentJobs(size_t max);
 void pruneOldJobs(size_t keep);
 

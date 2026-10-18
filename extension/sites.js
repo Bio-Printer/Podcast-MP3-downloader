@@ -9,6 +9,9 @@ var PMP3Sites = (function () {
       host: /(^|\.)rumble\.com$/i,
       // https://rumble.com/v6abc12-some-title.html  or  https://rumble.com/embed/v5xyz/
       videoUrl: /^https?:\/\/([a-z0-9-]+\.)?rumble\.com\/(v[a-z0-9]+-[^\/?#]*\.html|embed\/v[a-z0-9]+)/i,
+      // Behind Cloudflare: hand Edge's rumble.com cookies (incl. the
+      // "passed the check" cookie) to yt-dlp so it is let in like Edge.
+      cookieDomain: "rumble.com",
     },
     {
       name: "YouTube",

@@ -56,6 +56,36 @@ void writeNativeMessage(std::ostream& out, const std::string& msg) {
     out.flush();
 }
 
+// ---- browser cookies ----------------------------------------------------
+
+std::string netscapeCookiesFromJson(const std::string& text, int& count) {
+    count = 0;
+    std::string out = "# Netscape HTTP Cookie File\n";
+    json arr = json::parse(text, nullptr, false);
+    if (!arr.is_array()) return out;
+    auto bad = [](const std::string& s) { return s.find_first_of("\t\r\n") != std::string::npos; };
+    for (const auto& c : arr) {
+        if (!c.is_object()) continue;
+        std::string domain = c.value("domain", ""), name = c.value("name", ""), value = c.value("value", "");
+        std::string path = c.value("path", "/");
+        if (domain.empty() || name.empty() || bad(domain) || bad(name) || bad(value) || bad(path)) continue;
+        bool hostOnly = c.value("hostOnly", false);
+        if (hostOnly) {
+            if (domain[0] == '.') domain.erase(0, 1);
+        } else if (domain[0] != '.') {
+            domain = "." + domain;
+        }
+        long long expires = 0;  // 0 = session cookie
+        if (c.contains("expirationDate") && c["expirationDate"].is_number())
+            expires = (long long)c["expirationDate"].get<double>();
+        out += domain + "\t" + (hostOnly ? "FALSE" : "TRUE") + "\t" + path + "\t" +
+               (c.value("secure", false) ? "TRUE" : "FALSE") + "\t" + std::to_string(expires) + "\t" + name +
+               "\t" + value + "\n";
+        ++count;
+    }
+    return out;
+}
+
 // ---- version info -------------------------------------------------------
 
 std::string ytDlpVersion() {
@@ -338,6 +368,14 @@ std::string handleHostRequest(const std::string& requestJson) {
                 st.version = PMP3_VERSION_FULL;
                 writeTextFileAtomic(jobStatusFile(st.id), jobStatusToJson(st));
                 pruneOldJobs(60);
+                // Cookies/User-Agent from Edge (Rumble only), picked up by the job.
+                if (req.contains("cookies") && req["cookies"].is_array() && !req["cookies"].empty()) {
+                    int n = 0;
+                    std::string txt = netscapeCookiesFromJson(req["cookies"].dump(), n);
+                    if (n > 0) writeTextFileAtomic(jobCookieFile(st.id), txt);
+                }
+                if (req.contains("userAgent") && req["userAgent"].is_string())
+                    writeTextFileAtomic(jobUserAgentFile(st.id), req["userAgent"].get<std::string>());
                 std::string err;
                 if (launchJobProcess(st.id, url, check.speed, check.bitrateKbps, check.volume, err)) {
                     reply["ok"] = true;

@@ -39,7 +39,7 @@ const sites = fs
   .readFileSync(path.join(ext, "sites.js"), "utf8")
   .replace(
     "  ];",
-    '    { name: "Test", host: /^127\\.0\\.0\\.1$/, videoUrl: /^http:\\/\\/127\\.0\\.0\\.1:\\d+\\/v[a-z0-9]+-[^\\/?#]*\\.html/i },\n  ];'
+    '    { name: "Test", host: /^127\\.0\\.0\\.1$/, cookieDomain: "127.0.0.1", videoUrl: /^http:\\/\\/127\\.0\\.0\\.1:\\d+\\/v[a-z0-9]+-[^\\/?#]*\\.html/i },\n  ];'
   );
 fs.writeFileSync(path.join(ext, "sites.js"), sites);
 
@@ -80,6 +80,9 @@ async function waitForMp3(count, timeoutMs = 120000) {
   fail("timed out waiting for MP3 #" + count);
 }
 
+// A "Cloudflare" cookie the extension must hand over to yt-dlp.
+await context.addCookies([{ name: "cf_clearance", value: "secret-test-value", domain: "127.0.0.1", path: "/" }]);
+
 // 4. Middle-click the player on a video page.
 const page = await context.newPage();
 await page.goto(`${base}/v6test-episode-7.html`);
@@ -89,6 +92,16 @@ await page.waitForTimeout(1500);
 await page.screenshot({ path: path.join(shots, "1-middle-click-toast.png") });
 let files = await waitForMp3(1);
 console.log("MP3 #1:", files);
+{
+  const logs = path.join(home, ".local/share/podcastmp3/logs");
+  const first = fs.readdirSync(logs).sort()[0];
+  const text = fs.readFileSync(path.join(logs, first), "utf8");
+  const used = /Using 1 browser cookie\(s\) handed over by Edge/.test(text) && /--cookies /.test(text) && /--user-agent /.test(text);
+  const leaked = text.includes("secret-test-value");
+  const leftover = fs.readdirSync(path.join(home, ".local/share/podcastmp3/jobs")).filter((f) => /\.(cookies\.txt|ua)$/.test(f));
+  console.log("cookies handed over:", used, "| value in log:", leaked, "| leftover cookie files:", leftover.length);
+  if (!used || leaked || leftover.length) fail("browser cookies not handed over safely");
+}
 
 // 5. Popup: versions and the finished job.
 const popup = await context.newPage();
