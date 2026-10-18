@@ -1,0 +1,8 @@
+build/
+out/
+dist/
+.vs/
+*.user
+x64/
+*.pem
+packaging/thirdparty/
