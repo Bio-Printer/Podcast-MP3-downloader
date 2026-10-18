@@ -27,6 +27,66 @@ In short: unzip to `C:\Tmp\PodcastMP3`, run `PodcastMP3.exe` once, load
 `C:\Tmp\PodcastMP3\extension` with **Load unpacked** in `edge://extensions`.
 To update, unzip the new ZIP over the same folder; the extension reloads itself.
 
+## Switching between the official build and your own build
+
+Two copies of the programs can live side by side:
+
+| Build | Folder | Shows |
+|---|---|---|
+| Official release (from the ZIP) | `C:\Tmp\PodcastMP3\` | **Claude build** |
+| Your Visual Studio build | `C:\Tmp\PodcastMP3\source\build\vs\x64\Release\` (or `...\Debug\`) | **EDN - Built** |
+
+**Edge talks to only one of them at a time: the copy whose `PodcastMP3.exe`
+was started most recently.** Starting `PodcastMP3.exe` registers its own
+folder with Edge (this is the "Edge link OK" on the bottom line), so
+switching is just a matter of starting the other one once.
+
+### Use the official build (normal use)
+
+1. Close all Podcast MP3 windows.
+2. Start `C:\Tmp\PodcastMP3\PodcastMP3.exe` (the one in the root of the
+   install folder, where the ZIP was unpacked) once. You can close it again.
+3. Check: the title bar ends in **"- Claude build"**, and the Edge toolbar
+   popup shows `Helper v... · Claude build`.
+
+Unpacking a new release ZIP does **not** switch builds by itself; if your
+own build was the last one started, start the root `PodcastMP3.exe` once
+after updating.
+
+### Use your own build
+
+1. Build the solution (`PodcastMP3.sln`, Release | x64 recommended).
+2. Your build folder needs the download tools next to the programs, in a
+   `tools` folder. Either copy `C:\Tmp\PodcastMP3\tools` into the build
+   folder (giving `...\Release\tools\yt-dlp\yt-dlp.exe`,
+   `...\Release\tools\ffmpeg.exe`, `...\Release\tools\deno.exe`), or run
+   `powershell -ExecutionPolicy Bypass -File packaging\fetch_tools.ps1` once in
+   the source folder so every build copies them automatically.
+3. Close all Podcast MP3 windows.
+4. Start `PodcastMP3.exe` from your build folder once.
+5. Check: the title bar ends in **"- EDN - Built"**, and the Edge popup shows
+   `Helper v... · EDN - Built`.
+
+To run it from Visual Studio with F5, right-click the **PodcastMP3** project
+and choose **Set as Startup Project** (otherwise Visual Studio tries to start
+the `pmp3core` library).
+
+### Things that do not change when you switch
+
+- The Edge extension: keep it loaded from `C:\Tmp\PodcastMP3\extension`.
+  Only the helper programs differ between the builds.
+- Your settings (speed, volume, quality, MP3 folder) and the list of recent
+  downloads: both builds share them (stored in `%APPDATA%\PodcastMP3` and
+  `%LOCALAPPDATA%\PodcastMP3`).
+
+### Which one is running right now?
+
+- Edge toolbar popup: `Helper v<version> (build <id>) · Claude build` or `· EDN - Built`.
+- `PodcastMP3.exe`: the title bar, the bottom line, and **About** ("Built by"
+  and "Installed in" show the builder and the folder).
+- Progress windows: the builder is in the window title.
+- Command line: `podcastmp3-host.exe --version`.
+
 ## How it fits together
 
 ```

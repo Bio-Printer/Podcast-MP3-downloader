@@ -74,6 +74,22 @@ CHECKING WHICH VERSION IS RUNNING
 - Command line: podcastmp3-host.exe --version  (in the program folder)
 
 
+SWITCHING BETWEEN THE OFFICIAL BUILD AND YOUR OWN BUILD
+------------------------------------------------------
+Edge uses the copy of Podcast MP3 whose PodcastMP3.exe was started last.
+- Official release ("Claude build"): close all Podcast MP3 windows, then
+  start PodcastMP3.exe in this folder (the root of the unpacked ZIP) once.
+- Your Visual Studio build ("EDN - Built"): close all Podcast MP3 windows,
+  then start PodcastMP3.exe from your build folder once, for example
+  source\build\vs\x64\Release\. That folder needs a copy of this
+  folder's "tools" folder next to the program.
+Unpacking a new ZIP does not switch builds by itself. Check which one is
+active in the Edge toolbar popup ("Helper v... · Claude build" or
+"· EDN - Built") or in PodcastMP3.exe's title bar.
+Details: source\README.md, section "Switching between the official build
+and your own build".
+
+
 IF SOMETHING GOES WRONG
 -----------------------
 - "Helper not connected" in the popup: run PodcastMP3.exe once.

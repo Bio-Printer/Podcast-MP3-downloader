@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.13
+
+- README: how to switch between the official build ("Claude build") and your
+  own Visual Studio build ("EDN - Built"), and how to tell which is active.
+
 ## 0.1.12
 
 - Builder label next to the version everywhere (window titles, version line,
