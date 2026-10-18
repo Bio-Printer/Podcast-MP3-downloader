@@ -4,6 +4,7 @@
 #include "nlohmann/json.hpp"
 #include "childproc.h"
 #include "settings.h"
+#include "builder.h"
 #include "version.h"
 
 #include <cstdio>
@@ -299,6 +300,7 @@ std::string handleHostRequest(const std::string& requestJson) {
             reply["hostVersion"] = PMP3_VERSION;
             reply["hostBuild"] = PMP3_BUILD;
             reply["hostVersionFull"] = PMP3_VERSION_FULL;
+            reply["builder"] = PMP3_BUILDER_NAME;
             reply["extensionOnDisk"] = extensionVersionOnDisk();
             reply["extensionDir"] = pathToUtf8(extensionDir());
             reply["installDir"] = pathToUtf8(executableDir());

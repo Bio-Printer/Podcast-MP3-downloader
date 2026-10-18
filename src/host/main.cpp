@@ -13,6 +13,7 @@
 #include "../core/media.h"
 #include "../core/childproc.h"
 #include "../core/settings.h"
+#include "../core/builder.h"
 #include "../core/version.h"
 
 #include <cstdio>
@@ -46,7 +47,7 @@ static void out(const std::string& s) {
 }
 
 static void usage() {
-    out(std::string(PMP3_PRODUCT_NAME " helper v") + PMP3_VERSION_FULL +
+    out(std::string(PMP3_PRODUCT_NAME " helper v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME +
         "\n\n"
         "Usage:\n"
         "  podcastmp3-host download <url> [--speed 1.5] [--bitrate 192] [--volume 1.25] [--out DIR] [--engine rubberband|atempo]\n"
@@ -174,7 +175,7 @@ static int realMain(const std::vector<std::string>& a) {
     }
     const std::string& cmd = a[1];
     if (cmd == "--version" || cmd == "version") {
-        out(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + "\n");
+        out(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME "\n");
         out("yt-dlp: " + ytDlpPath() + " " + ytDlpVersion() + "\n");
         out("ffmpeg: " + ffmpegPath() + " " + ffmpegVersion() + "\n");
         out("deno:   " + (denoPath().empty() ? std::string("(not found - YouTube may not work)") : denoPath()) + "\n");

@@ -2,6 +2,7 @@
 
 #include "nlohmann/json.hpp"
 #include "childproc.h"
+#include "builder.h"
 #include "version.h"
 
 #include <algorithm>
@@ -236,7 +237,7 @@ bool JobRunner::runStep(const std::vector<std::string>& args,
 
 JobStatus JobRunner::run() {
     status_.started = nowLocalString();
-    log(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " job " + req_.id);
+    log(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME " - job " + req_.id);
     log("URL: " + req_.url + "  speed " + formatSpeed(req_.speed) + "x  " + std::to_string(req_.bitrateKbps) + " kbps  volume " + formatSpeed(req_.volume) + "x  output " + req_.outputDir);
 
     // Lets the browser extension cancel us by creating <id>.cancel.

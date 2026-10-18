@@ -11,7 +11,7 @@ PROJECTS = [
     # name, folder, guid, type, sources, headers, rc, subsystem, extra libs, references
     dict(name="pmp3core", folder="src/core", guid="6F1C2A10-7B2D-4E8A-9C31-1A0D5E7F2B01", kind="StaticLibrary",
          sources=["util.cpp", "childproc.cpp", "settings.cpp", "media.cpp", "job.cpp", "host.cpp"],
-         headers=["util.h", "childproc.h", "settings.h", "media.h", "job.h", "host.h", "version.h"],
+         headers=["util.h", "childproc.h", "settings.h", "media.h", "job.h", "host.h", "version.h", "builder.h"],
          rc=None, subsystem=None, libs="", refs=[]),
     dict(name="podcastmp3-host", folder="src/host", guid="6F1C2A10-7B2D-4E8A-9C31-1A0D5E7F2B02", kind="Application",
          sources=["main.cpp"], headers=[], rc="host.rc", subsystem="Console",

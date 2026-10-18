@@ -74,6 +74,7 @@
     <ClInclude Include="job.h" />
     <ClInclude Include="host.h" />
     <ClInclude Include="version.h" />
+    <ClInclude Include="builder.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

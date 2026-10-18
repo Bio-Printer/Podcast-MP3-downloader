@@ -397,18 +397,14 @@ function setupMenus() {
         "*://youtu.be/*",
       ],
     });
+    // One entry for the page itself and for embedded players (right-clicking
+    // inside an embedded player counts as both "page" and "frame"; separate
+    // entries for each showed up twice). Works on any web site.
     chrome.contextMenus.create({
       id: "pmp3-page",
       title: "Download MP3 of this video",
-      contexts: ["page", "video"],
-      documentUrlPatterns: ["*://*.rumble.com/*", "*://*.youtube.com/*"],
-    });
-    // Right-click inside a YouTube player embedded on another site.
-    chrome.contextMenus.create({
-      id: "pmp3-frame",
-      title: "Download MP3 of this video",
-      contexts: ["frame"],
-      documentUrlPatterns: ["*://*.youtube.com/embed/*", "*://*.youtube-nocookie.com/embed/*", "*://*.rumble.com/embed/*"],
+      contexts: ["page", "frame", "video"],
+      documentUrlPatterns: ["http://*/*", "https://*/*"],
     });
   });
 }
@@ -419,10 +415,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       const text = reply.ok ? [`MP3 download started at ${reply.speed}x`, info.linkUrl] : ["Podcast MP3 could not start", reply.error];
       if (tab) chrome.tabs.sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }).catch(() => {});
     });
-  } else if (info.menuItemId === "pmp3-frame" && info.frameUrl && PMP3Sites.isVideoUrl(info.frameUrl)) {
-    startJob(PMP3Sites.cleanUrl(info.frameUrl), (tab && tab.title) || "");
   } else if (info.menuItemId === "pmp3-page") {
-    sendTab(tab);
+    if (info.frameUrl && PMP3Sites.isVideoUrl(info.frameUrl)) {
+      // Right-click inside an embedded player: that player's video.
+      startJob(PMP3Sites.cleanUrl(info.frameUrl), "").then((reply) => {
+        const text = reply.ok ? [`MP3 download started at ${reply.speed}x`, info.frameUrl] : ["Podcast MP3 could not start", reply.error];
+        if (tab) chrome.tabs.sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }, { frameId: info.frameId }).catch(() => {});
+      });
+    } else {
+      sendTab(tab); // the page's video, or the chooser if it has several
+    }
   }
 });
 

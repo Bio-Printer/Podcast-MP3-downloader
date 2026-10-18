@@ -85,7 +85,8 @@ async function showVersions() {
   }
   const match = ping.hostVersionFull && myVersion === ping.hostVersionFull;
   v.innerHTML =
-    `Extension v${escapeHtml(myVersion)}<br>Helper v${escapeHtml(ping.hostVersionFull)} ` +
+    `Extension v${escapeHtml(myVersion)}<br>Helper v${escapeHtml(ping.hostVersionFull)}` +
+    (ping.builder ? ` · <b>${escapeHtml(ping.builder)}</b> ` : " ") +
     (match ? '<span class="ok">✓ matched</span>' : '<span class="bad">⚠ different version</span>') +
     (ping.ytdlp ? `<br>yt-dlp ${escapeHtml(ping.ytdlp)}` : "");
   if (ping.reloading) {

@@ -10,6 +10,7 @@
 #include "../core/job.h"
 #include "../core/childproc.h"
 #include "../core/settings.h"
+#include "../core/builder.h"
 #include "../core/version.h"
 
 #ifndef NOMINMAX
@@ -163,7 +164,7 @@ void appendLog(const std::string& line) {
 
 std::string versionLine() {
     std::string ext = extensionVersionOnDisk();
-    std::string s = "App v" PMP3_VERSION_FULL;
+    std::string s = "App v" PMP3_VERSION_FULL " - " PMP3_BUILDER_NAME;
     s += ext.empty() ? std::string("  |  Extension files: not found") : "  |  Extension files v" + ext;
     if (!g.ytdlpVersionCached.empty()) s += "  |  yt-dlp " + g.ytdlpVersionCached;
     s += nativeHostRegistered() ? "  |  Edge link OK" : "  |  Edge link NOT registered";
@@ -313,7 +314,7 @@ void onStatus(const JobStatus& s) {
         if (!s.channel.empty()) title = s.channel + " - " + title;
         setText(IDC_TITLE, title);
         std::wstring caption = W((s.state == JobState::Done ? std::string("Done") : std::to_string((int)s.percent) + "%") +
-                                 " - " PMP3_PRODUCT_NAME " v" PMP3_VERSION);
+                                 " - " PMP3_PRODUCT_NAME " v" PMP3_VERSION " - " PMP3_BUILDER_NAME);
         SetWindowTextW(g.hwnd, caption.c_str());
     }
 }
@@ -388,6 +389,7 @@ void browseFolder() {
 
 void showAbout() {
     std::string text = std::string(PMP3_PRODUCT_NAME "\n\nApp version:\t") + PMP3_VERSION_FULL +
+                       "\nBuilt by:\t" PMP3_BUILDER_NAME +
                        "\nExtension files:\t" + extensionVersionOnDisk() + "\nyt-dlp:\t\t" + ytDlpVersion() +
                        "\nffmpeg:\t\t" + ffmpegVersion() + "\n\nInstalled in:\t" + pathToUtf8(executableDir()) +
                        "\nExtension folder:\t" + pathToUtf8(extensionDir()) + "\nSettings:\t" +
@@ -461,7 +463,7 @@ void createMainControls() {
 
     std::string clip = clipboardUrl();
     if (!clip.empty()) setText(IDC_URL, clip);
-    appendLog(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL);
+    appendLog(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME);
     appendLog("Tip: in Edge, middle-click a Rumble video to send it here automatically.");
 }
 
@@ -691,7 +693,8 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     int sysDpi = GetDeviceCaps(dc, LOGPIXELSY);
     ReleaseDC(nullptr, dc);
     int w = MulDiv(g.jobMode ? 520 : 720, sysDpi, 96), h = MulDiv(g.jobMode ? 200 : 520, sysDpi, 96);
-    std::wstring title = g.jobMode ? L"Podcast MP3" : W(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL);
+    std::wstring title = g.jobMode ? L"Podcast MP3"
+                                   : W(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME);
     int x = CW_USEDEFAULT, y = CW_USEDEFAULT;
     if (g.jobMode) {
         // Bottom-right corner of the work area, like a notification.

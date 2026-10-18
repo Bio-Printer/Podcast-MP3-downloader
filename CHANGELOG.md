@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.12
+
+- Builder label next to the version everywhere (window titles, version line,
+  About, `podcastmp3-host --version`, job logs, Edge popup): programs built
+  with Visual Studio say "EDN - Built", the official MinGW release builds say
+  "Claude build" (src/core/builder.h).
+- Right-click menu: fixed two identical "Download MP3 of this video" entries
+  inside embedded players; there is now one entry, and it works on any web
+  site (inside a player it takes that player's video; elsewhere the page's
+  video, or the chooser when the page has several).
+
 ## 0.1.11
 
 - Visual Studio 2026 build fix: "CVT1100 duplicate resource type:MANIFEST"
