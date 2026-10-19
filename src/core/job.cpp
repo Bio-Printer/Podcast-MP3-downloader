@@ -55,7 +55,8 @@ std::string jobStatusToJson(const JobStatus& s) {
               {"started", s.started},
               {"finished", s.finished},
               {"updated", s.updatedEpoch},
-              {"version", s.version}};
+              {"version", s.version},
+              {"route", s.route}};
     return j.dump(2);
 }
 
@@ -79,6 +80,7 @@ bool jobStatusFromJson(const std::string& text, JobStatus& s) {
     s.finished = j.value("finished", "");
     s.updatedEpoch = j.value("updated", (int64_t)0);
     s.version = j.value("version", "");
+    s.route = j.value("route", "");
     return !s.id.empty();
 }
 
@@ -143,14 +145,40 @@ JobRunner::JobRunner(JobRequest req, UpdateFn onUpdate, LogFn onLog)
 
 JobRunner::~JobRunner() = default;
 
+// Every log line starts with the time ("[14:05:09.123] "), so a log shows
+// where the time went; multi-line text (tool output) is stamped per line.
 void JobRunner::log(const std::string& line) {
+    const std::string stamp = "[" + nowLogStamp() + "] ";
+    std::string stamped;
+    size_t start = 0;
+    while (start <= line.size()) {
+        size_t end = line.find('\n', start);
+        if (end == std::string::npos) end = line.size();
+        std::string part = line.substr(start, end - start);
+        if (!part.empty() && part.back() == '\r') part.pop_back();
+        stamped += stamp + part + "\n";
+        start = end + 1;
+    }
     {
         std::error_code ec;
         fs::create_directories(logsDir(), ec);
         std::ofstream f(logsDir() / toPath(req_.id + ".log"), std::ios::app | std::ios::binary);
-        f << line << "\n";
+        f << stamped;
     }
-    if (onLog_) onLog_(line);
+    if (onLog_) onLog_(stamped.substr(0, stamped.size() - 1));
+}
+
+static double secondsSince(std::chrono::steady_clock::time_point t) {
+    return std::chrono::duration<double>(std::chrono::steady_clock::now() - t).count();
+}
+
+static std::string fmtSeconds(double s) {
+    char buf[32];
+    if (s < 60)
+        std::snprintf(buf, sizeof(buf), "%.1f s", s);
+    else
+        return formatDuration(s);
+    return buf;
 }
 
 void JobRunner::update() {
@@ -169,6 +197,8 @@ void JobRunner::fail(const std::string& error) {
         status_.error = error;
         status_.message = "Failed";
         log("ERROR: " + error);
+        log("Failed after " + fmtSeconds(secondsSince(started_)) +
+            (status_.route.empty() ? std::string() : " (route: " + status_.route + ")"));
     }
     status_.finished = nowLocalString();
     update();
@@ -212,6 +242,7 @@ bool JobRunner::runStep(const std::vector<std::string>& args,
                         const std::function<void(const std::string&)>& onLine, std::string& stderrOut,
                         int& exitCode) {
     log("> " + describeArgs(args));
+    const auto stepStart = std::chrono::steady_clock::now();
     Process p;
     std::string err;
     {
@@ -234,11 +265,13 @@ bool JobRunner::runStep(const std::vector<std::string>& args,
     }
     stderrOut = p.stderrText();
     if (!stderrOut.empty()) log(trim(stderrOut));
-    log("< exit code " + std::to_string(exitCode));
+    log("< exit code " + std::to_string(exitCode) + " after " + fmtSeconds(secondsSince(stepStart)));
     return exitCode == 0 && !cancelled_;
 }
 
 JobStatus JobRunner::run() {
+    started_ = std::chrono::steady_clock::now();
+    double tRead = 0, tDownload = 0, tConvert = 0;
     status_.started = nowLocalString();
     log(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME " - job " + req_.id);
     log("URL: " + req_.url + "  speed " + formatSpeed(req_.speed) + "x  " + std::to_string(req_.bitrateKbps) + " kbps  volume " + formatSpeed(req_.volume) + "x  output " + req_.outputDir);
@@ -374,11 +407,15 @@ JobStatus JobRunner::run() {
                                               progressTemplate, "-o", pathToUtf8(tmp / "media.%(ext)s"), mediaUrl};
                 if (toPath(ffmpeg).is_absolute()) a.insert(a.begin() + 1, {"--ffmpeg-location", ffmpeg});
                 a.insert(a.begin() + 1, browserArgs.begin(), browserArgs.end());
+                const auto td = std::chrono::steady_clock::now();
                 ok = runStep(a, onDownloadLine, errText, code);
+                tDownload = secondsSince(td);
                 fs::path unused;
                 findDownloaded(unused);
                 if (ok && !media.empty()) {
                     direct = true;
+                    status_.route = "Edge";
+                    log("Route: video info read by Edge, audio downloaded directly from Rumble's video server");
                     coverSrc = info.thumbnail;
                 } else if (!cancelled_) {
                     log("Direct download failed (" + lastErrorLine(errText) + "); trying the normal way");
@@ -446,6 +483,11 @@ JobStatus JobRunner::run() {
             probeArgs.insert(probeArgs.begin() + 1, {"--impersonate", "chrome"});
             ok = runStep(probeArgs, onProbeLine, errText, code);
         }
+        tRead = secondsSince(probeStart);
+        status_.route = impersonate ? "yt-dlp (as browser)" : "yt-dlp";
+        if (ok)
+            log(std::string("Route: ") +
+                (impersonate ? "yt-dlp, retried presenting itself as a Chrome browser" : "yt-dlp (normal)"));
         if (!ok) {
             if (code == -1)
                 fail("Could not run yt-dlp (" + ytdlp + "): " + errText);
@@ -506,7 +548,9 @@ JobStatus JobRunner::run() {
         if (impersonate) dlArgs.insert(dlArgs.begin() + 1, {"--impersonate", "chrome"});
         if (!deno.empty()) dlArgs.insert(dlArgs.begin() + 1, {"--js-runtimes", "deno:" + deno});
         dlArgs.insert(dlArgs.begin() + 1, browserArgs.begin(), browserArgs.end());
+        const auto td = std::chrono::steady_clock::now();
         ok = runStep(dlArgs, onDownloadLine, errText, code);
+        tDownload = secondsSince(td);
         if (!ok) {
             fail("Download failed. " + lastErrorLine(errText));
             return status_;
@@ -581,6 +625,7 @@ JobStatus JobRunner::run() {
             errText, code);
     };
 
+    const auto tc = std::chrono::steady_clock::now();
     std::string engine = req_.tempoEngine;
     bool withCover = !coverSrc.empty();
     ok = convert(engine, withCover);
@@ -594,6 +639,7 @@ JobStatus JobRunner::run() {
         withCover = false;
         ok = convert(engine, withCover);
     }
+    tConvert = secondsSince(tc);
     if (!ok) {
         fail("MP3 conversion failed. " + lastErrorLine(errText));
         return status_;
@@ -625,6 +671,16 @@ JobStatus JobRunner::run() {
                       (outDuration > 0 ? ", " + formatDuration(outDuration) + " at " + formatSpeed(req_.speed) + "x"
                                        : std::string());
     status_.finished = nowLocalString();
+    {
+        double mediaBytes = (double)fs::file_size(media, ec);
+        if (ec) mediaBytes = 0;
+        std::string dl = fmtSeconds(tDownload);
+        if (mediaBytes > 0 && tDownload > 0)
+            dl += " (" + formatBytes(mediaBytes) + ", " + formatBytes(mediaBytes / tDownload) + "/s)";
+        log("Finished in " + fmtSeconds(secondsSince(started_)) + " - route: " + status_.route +
+            " | reading page: " + (direct ? std::string("done by Edge") : fmtSeconds(tRead)) +
+            " | download: " + dl + " | conversion: " + fmtSeconds(tConvert));
+    }
     log("Saved " + status_.output);
     update();
     return status_;

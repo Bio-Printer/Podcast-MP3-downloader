@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.16
+
+- Job logs: every line starts with the time to the millisecond, each call of
+  yt-dlp/ffmpeg shows how long it took ("< exit code 0 after 12.3 s"), a
+  "Route:" line says how the video was fetched (via Edge directly from
+  Rumble's video server, normal yt-dlp, or yt-dlp retrying as a browser),
+  and a closing summary gives total time, page reading, download (size and
+  average speed) and conversion times. Failed jobs end with "Failed after
+  ...".
+- Popup: "Recent downloads" shows the route ("via Edge", "via yt-dlp").
+
 ## 0.1.15
 
 - Rumble through Edge: the extension reads Rumble's video info through

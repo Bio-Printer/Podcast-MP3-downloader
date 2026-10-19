@@ -46,6 +46,8 @@ std::string formatDuration(double seconds);
 std::string nowLocalString();
 std::string nowCompactString();  // 20261018-134500
 int64_t nowEpochSeconds();
+// "14:05:09.123" (local time with milliseconds), for log lines.
+std::string nowLogStamp();
 
 // Random hex string (for job ids).
 std::string randomHex(size_t chars);

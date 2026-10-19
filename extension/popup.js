@@ -111,7 +111,8 @@ function jobLine(j) {
   li.innerHTML =
     `<div class="t" title="${escapeHtml(title)}">${escapeHtml(title)}</div>` +
     (final ? "" : `<div class="bar"><div style="width:${Math.max(2, j.percent || 0)}%"></div></div>`) +
-    `<div class="m ${j.state === "failed" ? "err" : ""}">${escapeHtml(msg)}${j.state === "done" ? "" : " · " + escapeHtml(j.speed) + "x"}</div>` +
+    `<div class="m ${j.state === "failed" ? "err" : ""}">${escapeHtml(msg)}${j.state === "done" ? "" : " · " + escapeHtml(j.speed) + "x"}` +
+    `${j.route ? " · via " + escapeHtml(j.route) : ""}</div>` +
     `<div class="acts"></div>`;
   const acts = li.querySelector(".acts");
   const add = (label, fn) => {

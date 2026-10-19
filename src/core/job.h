@@ -5,6 +5,7 @@
 #include "settings.h"
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -48,6 +49,7 @@ struct JobStatus {
     std::string finished;
     int64_t updatedEpoch = 0;
     std::string version;   // program version that ran the job
+    std::string route;     // how it was fetched: "Edge", "yt-dlp", "yt-dlp (as browser)"
 };
 
 std::string jobStatusToJson(const JobStatus& s);
@@ -97,6 +99,7 @@ private:
     std::atomic<bool> cancelled_{false};
     std::mutex procMutex_;
     Process* current_ = nullptr;
+    std::chrono::steady_clock::time_point started_ = std::chrono::steady_clock::now();
 };
 
 }  // namespace pmp3
