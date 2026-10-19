@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.15
+
+- Rumble through Edge: the extension reads Rumble's video info through
+  Edge's own connection (which a VPN or Cloudflare lets in) and hands it to
+  the helper, which then downloads the audio-only file straight from
+  Rumble's video servers. This skips the request that was being refused
+  with "HTTP 403 ... Unable to download JSON metadata". If anything in this
+  route fails, the job falls back to the normal yt-dlp route automatically.
+- Also faster for Rumble in general: the audio-only file is about 6x smaller
+  than the video.
+
 ## 0.1.14
 
 - Rumble downloads use Edge's rumble.com cookies (including Cloudflare's

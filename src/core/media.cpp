@@ -111,6 +111,62 @@ bool FormatInfo::isDrc() const {
     return id.find("-drc") != std::string::npos || toLower(note).find("drc") != std::string::npos;
 }
 
+static std::string htmlUnescape(std::string s) {
+    static const std::pair<const char*, const char*> named[] = {
+        {"&amp;", "&"}, {"&quot;", "\""}, {"&#39;", "'"}, {"&apos;", "'"}, {"&lt;", "<"}, {"&gt;", ">"}};
+    for (auto& n : named) s = replaceAll(s, n.first, n.second);
+    return s;
+}
+
+bool parseRumbleEmbedJson(const std::string& text, VideoInfo& info, std::string& mediaUrl, std::string& err) {
+    json j = json::parse(text, nullptr, false);
+    if (!j.is_object()) {
+        err = "not Rumble video data";
+        return false;
+    }
+    if (j.contains("live") && j["live"].is_number() && j["live"].get<int>() != 0) {
+        err = "live stream";
+        return false;
+    }
+    info = VideoInfo();
+    info.title = htmlUnescape(str(j, "title"));
+    if (j.contains("author") && j["author"].is_object()) info.channel = htmlUnescape(str(j["author"], "name"));
+    std::string pub = str(j, "pubDate");  // 2026-10-18T13:20:08+00:00
+    if (pub.size() >= 10) info.uploadDate = pub.substr(0, 4) + pub.substr(5, 2) + pub.substr(8, 2);
+    info.duration = num(j, "duration");
+    info.thumbnail = str(j, "i");
+    std::string l = str(j, "l");
+    if (startsWith(l, "/")) info.webpageUrl = "https://rumble.com" + l;
+    info.id = str(j, "vid");
+    info.extractor = "Rumble (via Edge)";
+
+    auto urlAt = [](const json& o) -> std::string {
+        return o.is_object() && o.contains("url") && o["url"].is_string() ? o["url"].get<std::string>() : "";
+    };
+    mediaUrl.clear();
+    const json u = j.value("u", json::object()), ua = j.value("ua", json::object());
+    if (u.contains("audio")) mediaUrl = urlAt(u["audio"]);
+    if (mediaUrl.empty() && ua.contains("mp4") && ua["mp4"].is_object()) {
+        int best = 1 << 30;
+        for (auto it = ua["mp4"].begin(); it != ua["mp4"].end(); ++it) {
+            int h = std::atoi(it.key().c_str());
+            std::string url = urlAt(it.value());
+            if (!url.empty() && h > 0 && h < best) {
+                best = h;
+                mediaUrl = url;
+            }
+        }
+    }
+    if (mediaUrl.empty() && u.contains("mp4")) mediaUrl = urlAt(u["mp4"]);
+    if (mediaUrl.empty() && u.contains("hls")) mediaUrl = urlAt(u["hls"]);
+    if (mediaUrl.empty()) {
+        err = "no downloadable media in Rumble's answer";
+        return false;
+    }
+    if (info.title.empty()) info.title = "Rumble video";
+    return true;
+}
+
 static int protocolPenalty(const FormatInfo& f) {
     // Plain HTTP downloads are fastest and most reliable; HLS/DASH next.
     if (f.protocol == "https" || f.protocol == "http" || f.protocol.empty()) return 0;

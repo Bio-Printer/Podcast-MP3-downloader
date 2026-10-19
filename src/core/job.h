@@ -65,6 +65,8 @@ fs::path jobCancelFile(const std::string& id);
 // them into its private temp folder at start; they are deleted with it.
 fs::path jobCookieFile(const std::string& id);
 fs::path jobUserAgentFile(const std::string& id);
+// Rumble's video info as fetched by Edge (see parseRumbleEmbedJson).
+fs::path jobRumbleInfoFile(const std::string& id);
 std::vector<JobStatus> listRecentJobs(size_t max);
 void pruneOldJobs(size_t keep);
 

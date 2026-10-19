@@ -46,6 +46,12 @@ struct VideoInfo {
 // Parses `yt-dlp -J` output. Returns false and sets err on failure.
 bool parseVideoInfo(const std::string& json, VideoInfo& info, std::string& err);
 
+// Parses Rumble's own video-info answer (rumble.com/embedJS/u3/?request=video
+// &ver=2&v=<id>) that the Edge extension fetched through Edge's connection.
+// Fills title/channel/date/duration/thumbnail/page and picks the media URL:
+// the audio-only file if Rumble offers one, else the smallest MP4, else HLS.
+bool parseRumbleEmbedJson(const std::string& json, VideoInfo& info, std::string& mediaUrl, std::string& err);
+
 // Picks the best audio with the least video weight:
 //  1) an audio-only stream with the highest bitrate, otherwise
 //  2) the muxed stream with the best audio, smallest resolution on ties.

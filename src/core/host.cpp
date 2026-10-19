@@ -374,6 +374,8 @@ std::string handleHostRequest(const std::string& requestJson) {
                     std::string txt = netscapeCookiesFromJson(req["cookies"].dump(), n);
                     if (n > 0) writeTextFileAtomic(jobCookieFile(st.id), txt);
                 }
+                if (req.contains("rumbleInfo") && req["rumbleInfo"].is_string())
+                    writeTextFileAtomic(jobRumbleInfoFile(st.id), req["rumbleInfo"].get<std::string>());
                 if (req.contains("userAgent") && req["userAgent"].is_string())
                     writeTextFileAtomic(jobUserAgentFile(st.id), req["userAgent"].get<std::string>());
                 std::string err;

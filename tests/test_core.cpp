@@ -205,6 +205,36 @@ static void testNativeFraming() {
     CHECK(reply.find("\"ok\":false") != std::string::npos);
 }
 
+static void testRumbleEmbed() {
+    const char* sample = R"J({"fps":30,"w":1280,"h":720,
+      "u":{"tar":{"url":"https://hugh.cdn.rumble.cloud/video/x/YtX7A.caa.tar?r_file=chunklist.m3u8"},
+           "timeline":{"url":"https://hugh.cdn.rumble.cloud/video/x/YtX7A.Faa.mp4"},
+           "audio":{"url":"https://hugh.cdn.rumble.cloud/video/x/YtX7A.Gaa.aac","meta":{"bitrate":196}},
+           "hls":{"url":"https://rumble.com/hls-vod/5e_G1c920x8/playlist.m3u8"}},
+      "i":"https://hugh.cdn.rumble.cloud/video/x/YtX7A.qR4e-small.jpg",
+      "l":"/v7h19te-josh-reid-end-time-alert-10.18.26.html",
+      "title":"Josh Reid: End-Time ALERT 10.18.26 - The War On Energy &amp; What’s Coming",
+      "author":{"name":"Juan O' Savin","url":"https://rumble.com/c/JuanOSavinIntel"},
+      "duration":4442,"pubDate":"2026-10-18T13:20:08+00:00","vid":448220156,"live":0})J";
+    VideoInfo info;
+    std::string url, err;
+    CHECK(parseRumbleEmbedJson(sample, info, url, err));
+    CHECK_EQ(url, std::string("https://hugh.cdn.rumble.cloud/video/x/YtX7A.Gaa.aac"));
+    CHECK_EQ(info.title, std::string("Josh Reid: End-Time ALERT 10.18.26 - The War On Energy & What\xE2\x80\x99s Coming"));
+    CHECK_EQ(info.channel, std::string("Juan O' Savin"));
+    CHECK_EQ(info.uploadDate, std::string("20261018"));
+    CHECK_EQ(info.duration, 4442.0);
+    CHECK_EQ(info.webpageUrl, std::string("https://rumble.com/v7h19te-josh-reid-end-time-alert-10.18.26.html"));
+    CHECK(endsWith(info.thumbnail, ".jpg"));
+    // No audio-only file: the smallest MP4.
+    CHECK(parseRumbleEmbedJson(R"({"title":"t","ua":{"mp4":{"720":{"url":"https://c/720.mp4"},"240":{"url":"https://c/240.mp4"}}}})",
+                               info, url, err));
+    CHECK_EQ(url, std::string("https://c/240.mp4"));
+    CHECK(!parseRumbleEmbedJson(R"({"title":"t","live":1,"u":{"audio":{"url":"x"}}})", info, url, err));
+    CHECK(!parseRumbleEmbedJson(R"({"title":"t"})", info, url, err));
+    CHECK(!parseRumbleEmbedJson("<html>", info, url, err));
+}
+
 static void testCookies() {
     int n = 0;
     std::string t = netscapeCookiesFromJson(R"([
@@ -303,6 +333,7 @@ int main() {
     testNativeFraming();
     testJobStatusJson();
     testCookies();
+    testRumbleEmbed();
     testSettings();
     testId3();
     std::printf("%d passed, %d failed\n", g_passed, g_failed);

@@ -85,6 +85,46 @@ async function siteCookies(domain) {
   return out;
 }
 
+// Rumble's video info, read through Edge's own connection. Some connections
+// (a VPN, for example) let Edge in but not yt-dlp; with this the helper can
+// download straight from Rumble's video servers. null if it can't be read.
+function rumbleEmbedIdFromUrl(url) {
+  const m = /rumble\.com\/embed\/(v[a-z0-9]+)/i.exec(url);
+  return m ? m[1] : null;
+}
+
+async function rumbleEmbedId(url) {
+  const direct = rumbleEmbedIdFromUrl(url);
+  if (direct) return direct;
+  // A video page (rumble.com/v...-title.html): its HTML names the player's id.
+  try {
+    const r = await fetch(url, { credentials: "include" });
+    if (!r.ok) return null;
+    const html = await r.text();
+    const m =
+      /"embedUrl"\s*:\s*"https?:\\?\/\\?\/rumble\.com\\?\/embed\\?\/(v[a-z0-9]+)/i.exec(html) ||
+      /rumble\.com\/embed\/(v[a-z0-9]+)/i.exec(html);
+    return m ? m[1] : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function rumbleInfo(url) {
+  const id = await rumbleEmbedId(url);
+  if (!id) return null;
+  try {
+    const r = await fetch(`https://rumble.com/embedJS/u3/?request=video&ver=2&v=${encodeURIComponent(id)}`, {
+      credentials: "include",
+    });
+    if (!r.ok) return null;
+    const text = await r.text();
+    return text.trim().startsWith("{") && text.length < 2000000 ? text : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function startJob(url, title) {
   const p = await prefs();
   const msg = { cmd: "start", url, title, speed: p.speed, bitrateKbps: p.bitrateKbps, volume: p.volume };
@@ -92,6 +132,10 @@ async function startJob(url, title) {
   if (site && site.cookieDomain) {
     msg.cookies = await siteCookies(site.cookieDomain);
     msg.userAgent = navigator.userAgent;
+  }
+  if (site && site.name === "Rumble") {
+    const info = await rumbleInfo(url);
+    if (info) msg.rumbleInfo = info;
   }
   const reply = await native(msg);
   if (reply.ok) {
