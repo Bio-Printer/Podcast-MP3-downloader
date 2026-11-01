@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.19
+
+- Right-click menu: "Download MP4 video of this video" next to "Download
+  MP3 of this video", on video links, pages and embedded players. With two
+  entries, Edge shows them under "Podcast MP3 Downloader" in the menu.
+
 ## 0.1.18
 
 - New "Download MP4 video" button in the popup (next to the middle-click

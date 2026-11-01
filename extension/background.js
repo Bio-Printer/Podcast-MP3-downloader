@@ -499,55 +499,69 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
   }
 });
 
+// Each kind of target gets two entries: MP3 (audio) and MP4 (the video itself,
+// with the same speed and volume changes). Edge groups them under
+// "Podcast MP3 Downloader" in the right-click menu.
+const LINK_PATTERNS = [
+  "*://*.rumble.com/v*",
+  "*://*.rumble.com/embed/*",
+  "*://*.youtube.com/watch*",
+  "*://*.youtube.com/shorts/*",
+  "*://*.youtube.com/live/*",
+  "*://youtu.be/*",
+  "*://*.x.com/*/status/*",
+  "*://*.twitter.com/*/status/*",
+  "*://t.me/*/*",
+  "*://telegram.me/*/*",
+];
+const MENU_TITLES = { mp3: "Download MP3 of this video", mp4: "Download MP4 video of this video" };
+
 function setupMenus() {
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: "pmp3-link",
-      title: "Download MP3 of this video",
-      contexts: ["link"],
-      targetUrlPatterns: [
-        "*://*.rumble.com/v*",
-        "*://*.rumble.com/embed/*",
-        "*://*.youtube.com/watch*",
-        "*://*.youtube.com/shorts/*",
-        "*://*.youtube.com/live/*",
-        "*://youtu.be/*",
-        "*://*.x.com/*/status/*",
-        "*://*.twitter.com/*/status/*",
-        "*://t.me/*/*",
-        "*://telegram.me/*/*",
-      ],
-    });
-    // One entry for the page itself and for embedded players (right-clicking
-    // inside an embedded player counts as both "page" and "frame"; separate
-    // entries for each showed up twice). Works on any web site.
-    chrome.contextMenus.create({
-      id: "pmp3-page",
-      title: "Download MP3 of this video",
-      contexts: ["page", "frame", "video"],
-      documentUrlPatterns: ["http://*/*", "https://*/*"],
-    });
+    for (const format of ["mp3", "mp4"]) {
+      const suffix = format === "mp4" ? "-mp4" : "";
+      chrome.contextMenus.create({
+        id: "pmp3-link" + suffix,
+        title: MENU_TITLES[format],
+        contexts: ["link"],
+        targetUrlPatterns: LINK_PATTERNS,
+      });
+      // One entry for the page itself and for embedded players (right-clicking
+      // inside an embedded player counts as both "page" and "frame"; separate
+      // entries for each showed up twice). Works on any web site.
+      chrome.contextMenus.create({
+        id: "pmp3-page" + suffix,
+        title: MENU_TITLES[format],
+        contexts: ["page", "frame", "video"],
+        documentUrlPatterns: ["http://*/*", "https://*/*"],
+      });
+    }
   });
 }
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "pmp3-link" && info.linkUrl && PMP3Sites.isVideoUrl(info.linkUrl)) {
-    startJob(PMP3Sites.cleanUrl(info.linkUrl), "").then((reply) => {
-      const text = reply.ok ? [startedText(reply), info.linkUrl] : ["Podcast MP3 could not start", reply.error];
-      if (tab) chrome.tabs.sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }).catch(() => {});
+function onMenuClick(info, tab) {
+  const id = String(info.menuItemId);
+  const format = id.endsWith("-mp4") ? "mp4" : "mp3";
+  const startAndToast = (url, frameId) =>
+    startJob(PMP3Sites.cleanUrl(url), "", format).then((reply) => {
+      const text = reply.ok ? [startedText(reply), url] : ["Podcast MP3 could not start", reply.error];
+      if (tab)
+        chrome.tabs
+          .sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }, frameId ? { frameId } : undefined)
+          .catch(() => {});
     });
-  } else if (info.menuItemId === "pmp3-page") {
+  if (id.startsWith("pmp3-link") && info.linkUrl && PMP3Sites.isVideoUrl(info.linkUrl)) {
+    startAndToast(info.linkUrl);
+  } else if (id.startsWith("pmp3-page")) {
     if (info.frameUrl && PMP3Sites.isVideoUrl(info.frameUrl)) {
       // Right-click inside an embedded player: that player's video.
-      startJob(PMP3Sites.cleanUrl(info.frameUrl), "").then((reply) => {
-        const text = reply.ok ? [startedText(reply), info.frameUrl] : ["Podcast MP3 could not start", reply.error];
-        if (tab) chrome.tabs.sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }, { frameId: info.frameId }).catch(() => {});
-      });
+      startAndToast(info.frameUrl, info.frameId);
     } else {
-      sendTab(tab); // the page's video, or the chooser if it has several
+      sendTab(tab, format); // the page's video, or the chooser if it has several
     }
   }
-});
+}
+chrome.contextMenus.onClicked.addListener(onMenuClick);
 
 // ---- lifecycle -------------------------------------------------------------
 // Pages that were already open when the extension was installed or updated

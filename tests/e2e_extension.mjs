@@ -285,6 +285,27 @@ const mp4Line = await popup.locator("#jobs li").first().innerText();
 console.log("popup MP4 job:", mp4Line.replace(/\n/g, " | "));
 if (!/🎬/.test(mp4Line)) fail("popup does not mark the MP4 job");
 
+// 6e. Right-click menu "Download MP4 video of this video" on a link (the
+// menu's click handler is called directly; Playwright cannot open Edge's menu).
+{
+  await page.goto(`${base}/list.html`);
+  const tabId = await popup.evaluate(() => new Promise((r) => chrome.tabs.query({ url: "http://127.0.0.1/*" }, (t) => r(t.find((x) => /list\.html/.test(x.url)).id))));
+  const before = fs.readdirSync(outDir).filter((n) => n.endsWith(".mp4")).length;
+  const [sw] = context.serviceWorkers();
+  await sw.evaluate(async (tabId) => {
+    const tab = await chrome.tabs.get(tabId);
+    onMenuClick({ menuItemId: "pmp3-link-mp4", linkUrl: "http://127.0.0.1:8765/v6test-episode-7.html" }, tab);
+  }, tabId);
+  let n = before;
+  for (let i = 0; i < 240 && n === before; i++) {
+    await page.waitForTimeout(500);
+    n = fs.readdirSync(outDir).filter((f) => f.endsWith(".mp4")).length;
+  }
+  const last = allJobs().pop();
+  console.log("right-click MP4 on a link -> job format:", last.format, "| MP4 files:", n);
+  if (n !== before + 1 || last.format !== "mp4") fail("right-click MP4 menu did not make an MP4");
+}
+
 // A video page that stays open while the extension updates itself (step 8).
 await page.goto(`${base}/v6test-episode-7.html`);
 
