@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.17
+
+- X (Twitter) and Telegram support. Middle-click the video in a post on
+  x.com (timeline, post page, replies) or t.me (a single post or the channel
+  view t.me/s/...), also posts embedded on other sites. The right post is
+  found even on a timeline with many videos. Links to posts are left alone,
+  because a post may be just text; right-click > "Download MP3 of this
+  video" does work on them.
+- X: if X refuses yt-dlp's normal request, it retries through X's service
+  for embedded posts (log: "Route: yt-dlp, retried through X's service for
+  embedded posts"; popup: "via yt-dlp (X embed service)").
+- Titles for posts: the first line of the post text with words in it
+  (links and emoji-only lines skipped, at most 100 characters); the full
+  post text goes into the MP3 comment tag.
+- "Download MP3 of this tab" / Alt+Shift+M skip embedded X posts that have
+  no video, so a page with one video and a few text posts still downloads
+  directly instead of showing the chooser.
+- Clear messages for posts without a video and for X posts that need a
+  login.
+- Very long titles are shortened in file names so the speed tag stays.
+
 ## 0.1.16
 
 - Job logs: every line starts with the time to the millisecond, each call of

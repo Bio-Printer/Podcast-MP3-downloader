@@ -4,6 +4,7 @@
 #include "version.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -103,8 +104,96 @@ bool parseVideoInfo(const std::string& text, VideoInfo& info, std::string& err) 
         fi.height = (int)num(j, "height");
         if (!fi.id.empty()) info.formats.push_back(fi);
     }
+    // X and Telegram have no titles: yt-dlp uses the post text ("Name - text..."
+    // for X, the whole message for Telegram). Make a short title from the text
+    // and keep the full text for the comment tag.
+    if (info.extractor == "Twitter" || startsWith(info.extractor, "Telegram")) {
+        info.postText = trim(info.description);
+        std::string t = titleFromPostText(info.postText);
+        if (t.empty()) {
+            t = info.title;
+            if (!info.channel.empty() && startsWith(t, info.channel + " - ")) t = t.substr(info.channel.size() + 3);
+            t = titleFromPostText(t);
+        }
+        info.title = t.empty() ? (info.extractor == "Twitter" ? "X post " : "Telegram post ") + info.id : t;
+    }
     if (info.title.empty()) info.title = info.id.empty() ? "Podcast" : info.id;
     return true;
+}
+
+std::string shortenTitle(const std::string& title, size_t maxBytes) {
+    std::string t = trim(title);
+    if (t.size() <= maxBytes) return t;
+    size_t cut = maxBytes > 3 ? maxBytes - 3 : maxBytes;
+    while (cut > 0 && ((unsigned char)t[cut] & 0xC0) == 0x80) --cut;  // not inside a UTF-8 character
+    size_t space = t.rfind(' ', cut);
+    if (space != std::string::npos && space > cut / 2) cut = space;
+    t = trim(t.substr(0, cut));
+    while (!t.empty() && std::string(",;:-").find(t.back()) != std::string::npos) t = trim(t.substr(0, t.size() - 1));
+    return t + "...";
+}
+
+std::string titleFromPostText(const std::string& text, size_t maxBytes) {
+    // Drop links (https://t.co/..., t.me/...), they mean nothing in a file name.
+    std::string noLinks;
+    for (size_t i = 0; i < text.size();) {
+        std::string rest = toLower(text.substr(i, 8));
+        if (startsWith(rest, "http://") || startsWith(rest, "https://")) {
+            while (i < text.size() && !std::isspace((unsigned char)text[i])) ++i;
+            continue;
+        }
+        noLinks.push_back(text[i++]);
+    }
+    // Counts letters/digits in a line: ASCII, 2-byte UTF-8 (Latin accents, Greek,
+    // Cyrillic, Hebrew, Arabic...) and CJK/kana/Hangul; not emoji or symbols.
+    auto letters = [](const std::string& line) {
+        int n = 0;
+        for (size_t i = 0; i < line.size();) {
+            unsigned char c = (unsigned char)line[i];
+            if (c < 0x80) {
+                if (std::isalnum(c)) ++n;
+                ++i;
+            } else if ((c & 0xE0) == 0xC0) {
+                ++n;
+                i += 2;
+            } else if ((c & 0xF0) == 0xE0 && i + 2 < line.size()) {
+                unsigned cp = ((c & 0x0Fu) << 12) | (((unsigned char)line[i + 1] & 0x3Fu) << 6) |
+                              ((unsigned char)line[i + 2] & 0x3Fu);
+                if ((cp >= 0x3040 && cp <= 0x9FFF) || (cp >= 0xAC00 && cp <= 0xD7AF)) ++n;
+                i += 3;
+            } else {
+                ++i;
+            }
+        }
+        return n;
+    };
+    auto tidy = [&](const std::string& line) {
+        std::string out;
+        bool sp = false;
+        for (char c : line) {
+            if (std::isspace((unsigned char)c)) {
+                sp = true;
+                continue;
+            }
+            if (sp && !out.empty()) out.push_back(' ');
+            sp = false;
+            out.push_back(c);
+        }
+        return shortenTitle(out, maxBytes);
+    };
+    // The first line with words in it; failing that, the first non-empty line (emoji only).
+    std::vector<std::string> lines;
+    for (size_t start = 0; start <= noLinks.size();) {
+        size_t end = noLinks.find('\n', start);
+        if (end == std::string::npos) end = noLinks.size();
+        lines.push_back(noLinks.substr(start, end - start));
+        start = end + 1;
+    }
+    for (const auto& l : lines)
+        if (letters(l) >= 2) return tidy(l);
+    for (const auto& l : lines)
+        if (!trim(l).empty()) return tidy(l);
+    return "";
 }
 
 bool FormatInfo::isDrc() const {
@@ -236,7 +325,8 @@ std::string prettyDate(const std::string& d) {
 std::string buildFileName(const std::string& tmpl, const VideoInfo& info, double speed) {
     std::string channel = info.channel.empty() ? "Unknown channel" : info.channel;
     std::string name = tmpl;
-    name = replaceAll(name, "{title}", info.title);
+    // (long titles are shortened first so the speed tag at the end survives)
+    name = replaceAll(name, "{title}", shortenTitle(info.title, 110));
     name = replaceAll(name, "{channel}", channel);
     // Pages without a publish date get today's date so names still sort.
     std::string date = info.uploadDate.empty() ? nowLocalString().substr(0, 10) : prettyDate(info.uploadDate);
@@ -278,6 +368,7 @@ TagSet buildTags(const VideoInfo& info, double speed, double volume) {
     t.genre = "Podcast";
     t.sourceUrl = info.webpageUrl;
     std::string c;
+    if (!info.postText.empty()) c += info.postText + "\n\n";
     if (!info.webpageUrl.empty()) c += "Source: " + info.webpageUrl + "\n";
     if (!t.date.empty()) c += "Published: " + t.date + "\n";
     c += "Speed: " + formatSpeed(speed) + "x\n";
@@ -562,6 +653,8 @@ std::string siteOf(const std::string& url) {
     auto is = [&host](const std::string& domain) { return host == domain || endsWith(host, "." + domain); };
     if (is("rumble.com")) return "rumble";
     if (is("youtube.com") || is("youtu.be")) return "youtube";
+    if (is("x.com") || is("twitter.com")) return "x";
+    if (host == "t.me" || host == "telegram.me") return "telegram";
     return "other";
 }
 

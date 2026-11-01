@@ -37,6 +37,7 @@ struct VideoInfo {
     std::string thumbnail;
     std::string description;
     std::string extractor;
+    std::string postText;     // X / Telegram: the full text of the post (the title is a short version)
     double duration = 0;      // seconds
     bool isLive = false;
     bool isPlaylist = false;
@@ -102,7 +103,15 @@ double parseFfmpegOutTime(const std::string& line);
 
 // True if the URL looks like something we can handle (http/https).
 bool looksLikeUrl(const std::string& s);
-// "rumble", "youtube", "other".
+// "rumble", "youtube", "x", "telegram", "other".
 std::string siteOf(const std::string& url);
+
+// A short, readable title made from the text of a post (X, Telegram): links
+// removed, the first line that has words in it, at most maxBytes long (cut
+// at a word, with "..." added). Empty if the text has no words.
+std::string titleFromPostText(const std::string& text, size_t maxBytes = 100);
+
+// Shortens a title to at most maxBytes, cutting at a word ("..." added).
+std::string shortenTitle(const std::string& title, size_t maxBytes);
 
 }  // namespace pmp3

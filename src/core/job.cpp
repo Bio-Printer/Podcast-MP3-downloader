@@ -483,17 +483,39 @@ JobStatus JobRunner::run() {
             probeArgs.insert(probeArgs.begin() + 1, {"--impersonate", "chrome"});
             ok = runStep(probeArgs, onProbeLine, errText, code);
         }
+        // X: yt-dlp normally asks X's app interface (with a "guest" pass), which
+        // X sometimes refuses; the service behind embedded posts is a second way in.
+        bool syndication = false;
+        if (!ok && !cancelled_ && code != -1 && siteOf(req_.url) == "x" &&
+            errText.find("No video could be found") == std::string::npos) {
+            log("X refused the request; retrying through X's service for embedded posts (twitter:api=syndication)");
+            syndication = true;
+            probeArgs.insert(probeArgs.begin() + 1, {"--extractor-args", "twitter:api=syndication"});
+            ok = runStep(probeArgs, onProbeLine, errText, code);
+        }
         tRead = secondsSince(probeStart);
-        status_.route = impersonate ? "yt-dlp (as browser)" : "yt-dlp";
+        status_.route = syndication ? "yt-dlp (X embed service)" : impersonate ? "yt-dlp (as browser)" : "yt-dlp";
         if (ok)
             log(std::string("Route: ") +
-                (impersonate ? "yt-dlp, retried presenting itself as a Chrome browser" : "yt-dlp (normal)"));
+                (syndication   ? "yt-dlp, retried through X's service for embedded posts"
+                 : impersonate ? "yt-dlp, retried presenting itself as a Chrome browser"
+                               : "yt-dlp (normal)"));
         if (!ok) {
             if (code == -1)
                 fail("Could not run yt-dlp (" + ytdlp + "): " + errText);
             else if (errText.find("not a bot") != std::string::npos)
                 fail("YouTube asked to confirm this is not a bot. This happens now and then, mostly on shared or "
                      "cloud internet connections. Wait a while and try again, or use \"Update yt-dlp\". Details: " +
+                     lastErrorLine(errText));
+            else if (errText.find("No video could be found") != std::string::npos)
+                fail("This X post has no video of its own. If it quotes or links to another post with the video, "
+                     "open that post and middle-click its video.");
+            else if (siteOf(req_.url) == "x" &&
+                     (errText.find("authentication") != std::string::npos ||
+                      errText.find("authorized") != std::string::npos ||
+                      errText.find("logged") != std::string::npos || errText.find("login") != std::string::npos))
+                fail("X only shows this post to logged-in users (age-restricted, sensitive or protected), and "
+                     "Podcast MP3 does not use your X login. Details: " +
                      lastErrorLine(errText));
             else if (errText.find("403") != std::string::npos)
                 fail("The site refused the request (HTTP 403, usually its bot protection). Open the video in Edge, "
@@ -505,7 +527,10 @@ JobStatus JobRunner::run() {
         }
         std::string perr, probeJson;
         if (!readTextFile(infoFile, probeJson)) {
-            fail("yt-dlp read the page but found no video on it. " + lastErrorLine(errText));
+            fail(siteOf(req_.url) == "telegram"
+                     ? "This Telegram post has no video of its own (only videos posted in public channels can be "
+                       "downloaded). If it links to a video on another site, open that link and middle-click the video."
+                     : "yt-dlp read the page but found no video on it. " + lastErrorLine(errText));
             return status_;
         }
         if (!parseVideoInfo(probeJson, info, perr)) {

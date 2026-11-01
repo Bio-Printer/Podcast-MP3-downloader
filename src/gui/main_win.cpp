@@ -418,7 +418,7 @@ void createMainControls() {
     Settings s = loadSettings();
     add(L"STATIC", L"Video page URL:", 0, IDC_LBL_URL);
     add(L"EDIT", L"", WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL, IDC_URL);
-    SendMessageW(ctl(IDC_URL), EM_SETCUEBANNER, TRUE, (LPARAM)L"https://rumble.com/...");
+    SendMessageW(ctl(IDC_URL), EM_SETCUEBANNER, TRUE, (LPARAM)L"https://... (Rumble, YouTube, X or Telegram video link)");
     add(L"BUTTON", L"Paste", WS_TABSTOP | BS_PUSHBUTTON, IDC_PASTE);
     add(L"STATIC", L"Playback speed:", 0, IDC_LBL_SPEED);
     add(WC_COMBOBOXW, L"", WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL, IDC_SPEED);
@@ -455,7 +455,7 @@ void createMainControls() {
     ShowWindow(ctl(IDC_CANCEL), SW_HIDE);
     add(PROGRESS_CLASSW, L"", 0, IDC_PROGRESS);
     SendMessageW(ctl(IDC_PROGRESS), PBM_SETRANGE32, 0, 1000);
-    add(L"STATIC", L"Paste a Rumble video link and press Download MP3.", SS_ENDELLIPSIS, IDC_STATUS);
+    add(L"STATIC", L"Paste a video link (Rumble, YouTube, X, Telegram) and press Download MP3.", SS_ENDELLIPSIS, IDC_STATUS);
     add(L"EDIT", L"", WS_VSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_BORDER, IDC_LOG);
     add(L"STATIC", W(versionLine()), SS_ENDELLIPSIS, IDC_VERSIONLINE);
     add(L"BUTTON", L"Update yt-dlp", WS_TABSTOP | BS_PUSHBUTTON, IDC_UPDATE);
@@ -464,7 +464,7 @@ void createMainControls() {
     std::string clip = clipboardUrl();
     if (!clip.empty()) setText(IDC_URL, clip);
     appendLog(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME);
-    appendLog("Tip: in Edge, middle-click a Rumble video to send it here automatically.");
+    appendLog("Tip: in Edge, middle-click a video on Rumble, YouTube, X or Telegram to send it here automatically.");
 }
 
 void createJobControls() {

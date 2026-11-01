@@ -180,6 +180,87 @@ const picked = fs.readdirSync(path.join(home, ".local/share/podcastmp3/jobs")).f
 console.log("picked ->", picked.url, "outline on:", await page.evaluate(() => [...document.querySelectorAll("iframe")].map((f) => f.style.outline || "-")));
 if (picked.url !== "https://www.youtube.com/watch?v=aaaaaaaaaaa") fail("chooser did not download the selected video");
 
+// 6c. X and Telegram. Their pages are imitated (same structure as the real
+// sites) and served under the real addresses, so the real manifest matches.
+const fakeSites = {
+  "https://x.com/home": `<!doctype html><html><head><title>Home / X</title></head><body>
+    <article><div>First post <a class="plainpost" href="/someone/status/333">link to a text post</a></div>
+      <a href="/teameffujoe/status/2116654931448922495?s=20"><time>Oct 30</time></a>
+      <div data-testid="videoPlayer"><video id="v1" width="480" height="270" src="${base}/episode.mp4"></video></div></article>
+    <article><a href="/other/status/444"><time>Oct 29</time></a>
+      <div data-testid="videoPlayer"><video id="v2" width="480" height="270" src="${base}/episode.mp4"></video></div></article>
+    </body></html>`,
+  "https://t.me/s/professor_patriot_official": `<!doctype html><html><head><title>Professor Patriot – Telegram</title></head><body>
+    <div class="tgme_widget_message" data-post="professor_patriot_official/54104">
+      <a class="tgme_widget_message_video_player" href="https://t.me/professor_patriot_official/54104">
+        <video width="480" height="270" src="${base}/episode.mp4"></video></a>
+      <div class="tgme_widget_message_text"><a class="plainpost" href="https://t.me/professor_patriot_official/54100">earlier post</a></div>
+    </div></body></html>`,
+  "https://platform.twitter.com/embed/Tweet.html?id=555": `<!doctype html><title>X post</title><p>Only text in this post.</p>`,
+  "https://t.me/someone_else/777?embed=1": `<!doctype html><title>Telegram post</title><div data-post="someone_else/777">
+    <a class="tgme_widget_message_video_player" href="https://t.me/someone_else/777"><video width="300" height="170"></video></a></div>`,
+  [`${base}/posts-news.html`]: `<!doctype html><html><head><title>News with posts</title></head><body>
+    <iframe width="500" height="300" src="https://platform.twitter.com/embed/Tweet.html?id=555" title="X post"></iframe>
+    <iframe width="400" height="400" src="https://t.me/someone_else/777?embed=1" title="Telegram post"></iframe>
+    </body></html>`,
+};
+await context.route(/^https:\/\/(x\.com|t\.me|platform\.twitter\.com)\/|posts-news\.html/, (route) => {
+  const body = fakeSites[route.request().url()];
+  if (body) route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body });
+  else route.fulfill({ status: 404, body: "" });
+});
+const allJobs = () => fs.readdirSync(jobsDirPath).filter((f) => f.endsWith(".json"))
+  .map((f) => JSON.parse(fs.readFileSync(path.join(jobsDirPath, f), "utf8"))).sort((a, b) => a.id.localeCompare(b.id));
+async function middleClick(sel, p = page) {
+  const b = await p.locator(sel).first().boundingBox();
+  await p.mouse.click(b.x + b.width / 2, b.y + b.height / 2, { button: "middle" });
+  await p.waitForTimeout(2500);
+}
+const newJobUrls = async (fn) => {
+  const before = allJobs().length;
+  await fn();
+  return allJobs().slice(before).map((j) => j.url);
+};
+await page.goto("https://x.com/home");
+let urls = await newJobUrls(() => middleClick("#v2"));
+console.log("X timeline, 2nd video ->", urls);
+if (JSON.stringify(urls) !== '["https://x.com/other/status/444"]') fail("X: wrong post for the clicked video");
+urls = await newJobUrls(() => middleClick("#v1"));
+console.log("X timeline, 1st video ->", urls);
+if (JSON.stringify(urls) !== '["https://x.com/teameffujoe/status/2116654931448922495"]') fail("X: wrong post for the clicked video");
+const tabsBefore = context.pages().length;
+urls = await newJobUrls(() => middleClick("a.plainpost"));
+console.log("X: middle-click on a link to a post ->", urls, "new tabs:", context.pages().length - tabsBefore);
+if (urls.length) fail("X: a plain link to a post must not start a download");
+await page.goto("https://t.me/s/professor_patriot_official");
+urls = await newJobUrls(() => middleClick("video"));
+console.log("Telegram channel view ->", urls);
+if (JSON.stringify(urls) !== '["https://t.me/professor_patriot_official/54104"]') fail("Telegram: wrong post");
+urls = await newJobUrls(() => middleClick("a.plainpost"));
+if (urls.length) fail("Telegram: a plain link to a post must not start a download");
+// Toolbar button on a page with an embedded text-only X post and an embedded
+// Telegram video: no chooser, the Telegram video is sent straight away.
+await page.goto(`${base}/posts-news.html`);
+await page.bringToFront();
+await page.waitForTimeout(800);
+let embedReply;
+urls = await newJobUrls(async () => {
+  embedReply = await popup.evaluate(() => new Promise((r) => chrome.runtime.sendMessage({ type: "sendTab" }, r)));
+  await page.waitForTimeout(1500);
+});
+console.log("page with embedded posts ->", JSON.stringify(embedReply), urls);
+if (embedReply.choosing || JSON.stringify(urls) !== '["https://t.me/someone_else/777"]') fail("embedded posts: text-only X post was not skipped");
+// Middle-click inside the embedded Telegram post (a frame) sends that post.
+urls = await newJobUrls(async () => {
+  const fr = page.frameLocator('iframe[title="Telegram post"]');
+  const b = await fr.locator("video").boundingBox();
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2, { button: "middle" });
+  await page.waitForTimeout(2500);
+});
+console.log("middle-click in embedded Telegram post ->", urls);
+if (JSON.stringify(urls) !== '["https://t.me/someone_else/777"]') fail("embedded Telegram post: middle-click did not send it");
+await context.unroute(/^https:\/\/(x\.com|t\.me|platform\.twitter\.com)\/|posts-news\.html/);
+
 // A video page that stays open while the extension updates itself (step 8).
 await page.goto(`${base}/v6test-episode-7.html`);
 

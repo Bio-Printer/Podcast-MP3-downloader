@@ -322,6 +322,60 @@ static void testId3() {
     fs::remove(p, ec);
 }
 
+static void testPosts() {
+    // X: yt-dlp's title is "Name - text..."; the description has the full text and a t.co link.
+    VideoInfo info;
+    std::string err;
+    CHECK(parseVideoInfo(R"J({"id":"2116654931448922495","title":"Team Joe - This is the clip everyone is talking about. Watc...",
+        "description":"This is the clip everyone is talking about.   Watch to the end!\n\nMore: https://t.co/AbCdEf123",
+        "uploader":"Team Joe","uploader_id":"teameffujoe","upload_date":"20261030","extractor_key":"Twitter",
+        "webpage_url":"https://twitter.com/teameffujoe/status/2116654931448922495",
+        "formats":[{"format_id":"hls-audio-128000-Audio","ext":"mp4","acodec":"mp4a.40.2","vcodec":"none","abr":128,"protocol":"m3u8_native"},
+                   {"format_id":"http-832","ext":"mp4","acodec":"mp4a","vcodec":"avc1","height":360,"tbr":832,"protocol":"https"}]})J",
+                         info, err));
+    CHECK_EQ(info.title, std::string("This is the clip everyone is talking about. Watch to the end!"));
+    CHECK_EQ(info.channel, std::string("Team Joe"));
+    CHECK(info.postText.find("https://t.co/AbCdEf123") != std::string::npos);
+    CHECK(buildTags(info, 1.5, 1.0).comment.find("This is the clip everyone is talking about.   Watch to the end!") == 0);
+    CHECK_EQ(buildFileName("{date} {channel} - {title}{speedtag}", info, 1.5),
+             std::string("2026-10-30 Team Joe - This is the clip everyone is talking about. Watch to the end! (1.5x)"));
+    CHECK(chooseFormat(info) == 0);
+
+    // Telegram: the title is the whole message; first line with words, no links, shortened at a word.
+    VideoInfo tg;
+    CHECK(parseVideoInfo(R"J({"id":"54104","title":"x","channel":"Professor Patriot","channel_id":"professor_patriot_official",
+        "description":"🔥🔥🔥\nhttps://x.com/teameffujoe/status/2116654931448922495\nTHIS is what they don't want you to see about the election results in several states and counties across the country",
+        "upload_date":"20261031","extractor_key":"TelegramEmbed","formats":[{"format_id":"0","ext":"mp4","url":"https://cdn/x.mp4"}]})J",
+                         tg, err));
+    // (the emoji-only first line is skipped)
+    CHECK_EQ(tg.title, std::string("THIS is what they don't want you to see about the election results in several states and counties..."));
+    CHECK_EQ(titleFromPostText("🔥🔥🔥\n"), std::string("🔥🔥🔥"));
+    CHECK_EQ(titleFromPostText("Видео: новости дня"), std::string("Видео: новости дня"));
+    CHECK_EQ(titleFromPostText("https://t.co/x\n  \nHello   world  https://t.co/y"), std::string("Hello world"));
+    CHECK_EQ(titleFromPostText("https://only.link/here"), std::string(""));
+    std::string longText = "THIS is what they don't want you to see about the election results in several states and counties across the country";
+    std::string shortT = titleFromPostText(longText, 60);
+    CHECK(shortT.size() <= 60);
+    CHECK_EQ(shortT, std::string("THIS is what they don't want you to see about the..."));
+    // A post without any text gets "Telegram post <id>".
+    VideoInfo empty;
+    CHECK(parseVideoInfo(R"J({"id":"77","title":"","description":"","extractor_key":"TelegramEmbed","formats":[{"format_id":"0","ext":"mp4"}]})J",
+                         empty, err));
+    CHECK_EQ(empty.title, std::string("Telegram post 77"));
+    // Long titles are shortened so the speed tag survives.
+    VideoInfo lt;
+    lt.title = std::string(200, 'a');
+    lt.channel = "C";
+    lt.uploadDate = "20260101";
+    std::string fn = buildFileName("{date} {channel} - {title}{speedtag}", lt, 2.0);
+    CHECK(endsWith(fn, "... (2x)"));
+
+    CHECK_EQ(siteOf("https://x.com/a/status/1"), std::string("x"));
+    CHECK_EQ(siteOf("https://mobile.twitter.com/a/status/1"), std::string("x"));
+    CHECK_EQ(siteOf("https://t.me/professor_patriot_official/54104"), std::string("telegram"));
+    CHECK_EQ(siteOf("https://notx.com/a"), std::string("other"));
+}
+
 int main() {
     testSanitize();
     testFormatting();
@@ -334,6 +388,7 @@ int main() {
     testJobStatusJson();
     testCookies();
     testRumbleEmbed();
+    testPosts();
     testSettings();
     testId3();
     std::printf("%d passed, %d failed\n", g_passed, g_failed);

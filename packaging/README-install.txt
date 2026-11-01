@@ -37,6 +37,10 @@ USING IT
   thumbnail of any video, to save its MP3. This also works on a YouTube
   player embedded in another web site (a news article, a blog). A small window shows progress and closes itself
   when done.
+- On x.com and t.me (Telegram), MIDDLE-CLICK the video inside a post.
+  Plain links to posts are left alone (a post may be just text). For a
+  post you see in the Telegram app, use "Copy Post Link" and open it in
+  Edge. Only public posts and public channels work.
 - Other ways: right-click > "Download MP3 of this video", the toolbar
   button's "Download MP3 of this tab", or Alt+Shift+M. On a page that only
   has an embedded player, "Download MP3 of this tab" finds the player; if

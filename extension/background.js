@@ -261,7 +261,7 @@ async function addVideoTitles(tabId, videos) {
     });
     for (const r of results || []) {
       if (!r.result || !PMP3Sites.isVideoUrl(r.result.url)) continue;
-      const t = (r.result.title || "").replace(/\s+[-|]\s+(Rumble|YouTube)\s*$/i, "").trim();
+      const t = (r.result.title || "").replace(/\s+[-|/]\s+(Rumble|YouTube|X|Telegram)\s*$/i, "").trim();
       // (a player that has not loaded yet is titled just "YouTube")
       if (t && !/^(YouTube|Rumble)$/i.test(t)) frameTitles[PMP3Sites.cleanUrl(r.result.url)] = t;
     }
@@ -317,7 +317,7 @@ async function resolveTabVideo(tab) {
         return found;
       },
     });
-    const videos = (res && res.result) || [];
+    const videos = await dropPostsWithoutVideo(tab.id, (res && res.result) || []);
     if (videos.length === 1) return { url: videos[0].url, title: videos[0].title || title, embedded: true };
     if (videos.length > 1) return { choices: await addVideoTitles(tab.id, videos), title };
   } catch (e) {
@@ -325,6 +325,36 @@ async function resolveTabVideo(tab) {
   }
   if (/^https?:/i.test(tab.url || "")) return { url: tab.url, title, guessed: true };
   return null;
+}
+
+// Embedded X / Telegram posts are often just text. Look inside each one and
+// keep only those that hold a video (or that could not be looked into).
+async function dropPostsWithoutVideo(tabId, videos) {
+  const isPost = (v) => {
+    const s = PMP3Sites.siteForUrl(v.url);
+    return !!(s && s.posts);
+  };
+  if (!videos.some(isPost)) return videos;
+  const hasVideo = {};
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId, allFrames: true },
+      func: () => ({
+        url: location.href,
+        video: !!document.querySelector(
+          "video, .tgme_widget_message_video_player, .tgme_widget_message_roundvideo_player, " +
+            "[data-testid='videoPlayer'], [data-testid='videoComponent'], [data-testid='playButton'], " +
+            "[aria-label='Play'], [aria-label='Play video']"
+        ),
+      }),
+    });
+    for (const r of results || []) {
+      if (r.result && PMP3Sites.isVideoUrl(r.result.url)) hasVideo[PMP3Sites.cleanUrl(r.result.url)] = r.result.video;
+    }
+  } catch (e) {
+    return videos;
+  }
+  return videos.filter((v) => !isPost(v) || hasVideo[v.url] !== false);
 }
 
 // Shown in the page when it has several videos: a drop-down sorted by size
@@ -472,6 +502,10 @@ function setupMenus() {
         "*://*.youtube.com/shorts/*",
         "*://*.youtube.com/live/*",
         "*://youtu.be/*",
+        "*://*.x.com/*/status/*",
+        "*://*.twitter.com/*/status/*",
+        "*://t.me/*/*",
+        "*://telegram.me/*/*",
       ],
     });
     // One entry for the page itself and for embedded players (right-clicking

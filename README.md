@@ -1,6 +1,6 @@
 # Podcast MP3 Downloader
 
-Middle-click a Rumble or YouTube video (also YouTube players embedded on other sites) in Microsoft Edge and get its audio as an MP3 you can
+Middle-click a Rumble, YouTube, X (Twitter) or Telegram video (also players embedded on other sites) in Microsoft Edge and get its audio as an MP3 you can
 play on your phone, already sped up to your preferred playback speed (default
 1.5x, pitch kept natural).
 
@@ -17,6 +17,19 @@ play on your phone, already sped up to your preferred playback speed (default
 MP3 tags: title, channel (artist + album), year and full date, genre
 "Podcast", cover picture (video thumbnail), a comment with the source address,
 speed and download date, and the source URL (`WOAS` and `TXXX:SOURCE_URL`).
+
+## Supported sites
+
+| Site | Middle-click works on | Notes |
+|------|----------------------|-------|
+| Rumble | video players, video links and thumbnails | Video info is read through Edge, audio downloaded directly (works behind a VPN / Cloudflare) |
+| YouTube | video players, video links and thumbnails, players embedded on other sites | |
+| X (Twitter) | the video inside a post (timeline, post page, posts embedded on other sites) | Links to posts are left alone (a post may be just text). Public posts only; X's login is not used |
+| Telegram | the video in a post on t.me (single post, channel view `t.me/s/...`, posts embedded on other sites) | Public channels only. The Telegram app and web.telegram.org are not supported; use "Copy link" on the post and open it in Edge |
+
+X and Telegram posts have no title, so the MP3 title is the first line of
+the post's text (links removed, at most 100 characters); the full text is
+kept in the MP3's comment tag.
 
 ## Install / update
 
