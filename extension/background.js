@@ -125,9 +125,12 @@ async function rumbleInfo(url) {
   }
 }
 
-async function startJob(url, title) {
+// format: "mp3" (audio, the normal case) or "mp4" (video with the same speed
+// and volume changes).
+async function startJob(url, title, format) {
   const p = await prefs();
-  const msg = { cmd: "start", url, title, speed: p.speed, bitrateKbps: p.bitrateKbps, volume: p.volume };
+  format = format === "mp4" ? "mp4" : "mp3";
+  const msg = { cmd: "start", url, title, speed: p.speed, bitrateKbps: p.bitrateKbps, volume: p.volume, format };
   const site = PMP3Sites.siteForUrl(url);
   if (site && site.cookieDomain) {
     msg.cookies = await siteCookies(site.cookieDomain);
@@ -145,7 +148,12 @@ async function startJob(url, title) {
     reply.error =
       "The Podcast MP3 helper program is not connected. Run PodcastMP3.exe once from its folder, then try again.";
   }
-  return { ...reply, speed: p.speed };
+  return { ...reply, speed: p.speed, format };
+}
+
+// "MP3 download started at 1.5x" / "MP4 video download started at 1.5x"
+function startedText(reply) {
+  return `${reply.format === "mp4" ? "MP4 video" : "MP3"} download started at ${reply.speed}x`;
 }
 
 function schedulePoll(ms) {
@@ -171,10 +179,11 @@ async function poll() {
 
 function notifyFinished(j) {
   const ok = j.state === "done";
+  const kind = j.format === "mp4" ? "MP4 video" : "MP3";
   chrome.notifications.create("job:" + j.id, {
     type: "basic",
     iconUrl: "icons/icon128.png",
-    title: ok ? "MP3 ready" : j.state === "cancelled" ? "Download cancelled" : "MP3 download failed",
+    title: ok ? kind + " ready" : j.state === "cancelled" ? "Download cancelled" : kind + " download failed",
     message: (j.title || j.url) + (ok ? "\n" + j.message : "\n" + (j.error || "")),
     priority: ok ? 0 : 1,
     // Windows would hide it after ~5 s; keep it up and remove it after 30 s.
@@ -193,7 +202,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     switch (msg && msg.type) {
       case "start":
-        sendResponse(await startJob(msg.url, msg.title || ""));
+        sendResponse(await startJob(msg.url, msg.title || "", msg.format));
         break;
       case "ping": {
         const ping = await native({ cmd: "ping", full: !!msg.full });
@@ -211,7 +220,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
       case "sendTab": {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        sendResponse(await sendTab(tab));
+        sendResponse(await sendTab(tab, msg.format));
         break;
       }
       case "native":
@@ -360,7 +369,8 @@ async function dropPostsWithoutVideo(tabId, videos) {
 // Shown in the page when it has several videos: a drop-down sorted by size
 // (largest first); the selected player is outlined so it is clear which is
 // which. Runs inside the page, so it must not use anything from this file.
-function showVideoChooser(videos, speed) {
+function showVideoChooser(videos, speed, format) {
+  const kind = format === "mp4" ? "MP4 video" : "MP3";
   const old = document.getElementById("pmp3-chooser");
   if (old) old.remove();
   const frames = document.querySelectorAll("iframe, embed, object");
@@ -408,7 +418,7 @@ function showVideoChooser(videos, speed) {
     <div class="b">
       <div class="h">🎧 This page has ${videos.length} videos. Which one?</div>
       <ul role="listbox" tabindex="0"></ul>
-      <div class="r"><button class="no">Cancel</button><button class="go">Download MP3 at ${speed}x</button></div>
+      <div class="r"><button class="no">Cancel</button><button class="go">Download ${kind} at ${speed}x</button></div>
       <div class="s">Largest first. Click to select (outlined in green on the page), double-click to download.</div>
     </div>`;
   const list = root.querySelector("ul");
@@ -453,9 +463,9 @@ function showVideoChooser(videos, speed) {
     root.querySelector(".r").remove();
     list.style.pointerEvents = "none";
     root.querySelector(".s").textContent = "Sending to Podcast MP3...";
-    chrome.runtime.sendMessage({ type: "start", url: v.url, title: v.title }, (reply) => {
+    chrome.runtime.sendMessage({ type: "start", url: v.url, title: v.title, format }, (reply) => {
       root.querySelector(".s").textContent =
-        reply && reply.ok ? `MP3 download started at ${reply.speed}x: ${v.title || v.url}` : "Could not start: " + ((reply && reply.error) || "no answer");
+        reply && reply.ok ? `${kind} download started at ${reply.speed}x: ${v.title || v.url}` : "Could not start: " + ((reply && reply.error) || "no answer");
       setTimeout(close, reply && reply.ok ? 3000 : 9000);
     });
   }
@@ -466,18 +476,18 @@ function showVideoChooser(videos, speed) {
   select(0);
 }
 
-async function sendTab(tab) {
+async function sendTab(tab, format) {
   if (!tab) return { ok: false, error: "No tab" };
   const found = await resolveTabVideo(tab);
   if (!found) return { ok: false, error: "This tab does not show a web page with a video." };
   if (found.choices) {
     const p = await prefs();
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: showVideoChooser, args: [found.choices, p.speed] });
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: showVideoChooser, args: [found.choices, p.speed, format === "mp4" ? "mp4" : "mp3"] });
     return { ok: true, choosing: true, count: found.choices.length };
   }
   const { url, title } = found;
-  const reply = await startJob(url, title);
-  const text = reply.ok ? [`MP3 download started at ${reply.speed}x`, title] : ["Podcast MP3 could not start", reply.error];
+  const reply = await startJob(url, title, format);
+  const text = reply.ok ? [startedText(reply), title] : ["Podcast MP3 could not start", reply.error];
   chrome.tabs.sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }).catch(() => {});
   return reply;
 }
@@ -523,14 +533,14 @@ function setupMenus() {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "pmp3-link" && info.linkUrl && PMP3Sites.isVideoUrl(info.linkUrl)) {
     startJob(PMP3Sites.cleanUrl(info.linkUrl), "").then((reply) => {
-      const text = reply.ok ? [`MP3 download started at ${reply.speed}x`, info.linkUrl] : ["Podcast MP3 could not start", reply.error];
+      const text = reply.ok ? [startedText(reply), info.linkUrl] : ["Podcast MP3 could not start", reply.error];
       if (tab) chrome.tabs.sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }).catch(() => {});
     });
   } else if (info.menuItemId === "pmp3-page") {
     if (info.frameUrl && PMP3Sites.isVideoUrl(info.frameUrl)) {
       // Right-click inside an embedded player: that player's video.
       startJob(PMP3Sites.cleanUrl(info.frameUrl), "").then((reply) => {
-        const text = reply.ok ? [`MP3 download started at ${reply.speed}x`, info.frameUrl] : ["Podcast MP3 could not start", reply.error];
+        const text = reply.ok ? [startedText(reply), info.frameUrl] : ["Podcast MP3 could not start", reply.error];
         if (tab) chrome.tabs.sendMessage(tab.id, { type: "toast", text, kind: reply.ok ? "" : "error" }, { frameId: info.frameId }).catch(() => {});
       });
     } else {

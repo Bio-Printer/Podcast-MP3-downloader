@@ -134,7 +134,7 @@ std::string extensionVersionOnDisk() {
 // ---- launching ---------------------------------------------------------
 
 bool launchJobProcess(const std::string& jobId, const std::string& url, double speed, int bitrate, double volume,
-                      std::string& err) {
+                      const std::string& format, std::string& err) {
     fs::path dir = executableDir();
     std::error_code ec;
     std::vector<std::string> args;
@@ -142,7 +142,7 @@ bool launchJobProcess(const std::string& jobId, const std::string& url, double s
     fs::path gui = dir / L"PodcastMP3.exe";
     if (fs::exists(gui, ec)) {
         args = {pathToUtf8(gui), "--job", jobId, "--url", url, "--speed", formatSpeed(speed), "--bitrate",
-                std::to_string(bitrate), "--volume", formatSpeed(volume)};
+                std::to_string(bitrate), "--volume", formatSpeed(volume), "--format", format};
         return spawnDetached(args, err, false);
     }
     fs::path host = dir / L"podcastmp3-host.exe";
@@ -150,7 +150,7 @@ bool launchJobProcess(const std::string& jobId, const std::string& url, double s
     fs::path host = dir / "podcastmp3-host";
 #endif
     args = {pathToUtf8(host), "run-job", "--job", jobId, "--url", url, "--speed", formatSpeed(speed), "--bitrate",
-            std::to_string(bitrate), "--volume", formatSpeed(volume)};
+            std::to_string(bitrate), "--volume", formatSpeed(volume), "--format", format};
     return spawnDetached(args, err, true);
 }
 
@@ -360,6 +360,7 @@ std::string handleHostRequest(const std::string& requestJson) {
                 st.speed = check.speed;
                 st.bitrateKbps = check.bitrateKbps;
                 st.volume = check.volume;
+                st.format = normalizeFormat(req.value("format", "mp3"));
                 st.state = JobState::Queued;
                 st.message = "Starting...";
                 st.title = req.value("title", "");
@@ -379,7 +380,7 @@ std::string handleHostRequest(const std::string& requestJson) {
                 if (req.contains("userAgent") && req["userAgent"].is_string())
                     writeTextFileAtomic(jobUserAgentFile(st.id), req["userAgent"].get<std::string>());
                 std::string err;
-                if (launchJobProcess(st.id, url, check.speed, check.bitrateKbps, check.volume, err)) {
+                if (launchJobProcess(st.id, url, check.speed, check.bitrateKbps, check.volume, st.format, err)) {
                     reply["ok"] = true;
                     reply["jobId"] = st.id;
                     reply["job"] = jobToJson(st);

@@ -81,6 +81,7 @@ async function showVersions() {
         "</small>"
     );
     $("sendTab").disabled = true;
+    $("sendTabVideo").disabled = true;
     return false;
   }
   const match = ping.hostVersionFull && myVersion === ping.hostVersionFull;
@@ -105,7 +106,7 @@ async function showVersions() {
 
 function jobLine(j) {
   const li = document.createElement("li");
-  const title = (j.channel ? j.channel + " - " : "") + (j.title || j.url);
+  const title = (j.format === "mp4" ? "🎬 " : "") + (j.channel ? j.channel + " - " : "") + (j.title || j.url);
   const final = ["done", "failed", "cancelled"].includes(j.state);
   const msg = j.state === "failed" ? j.error || "Failed" : j.message || j.state;
   li.innerHTML =
@@ -124,7 +125,7 @@ function jobLine(j) {
   };
   if (j.state === "done") add("Show file", () => native({ cmd: "open", jobId: j.id }));
   if (!final) add("Cancel", () => native({ cmd: "cancel", jobId: j.id }).then(refreshJobs));
-  if (j.state === "failed") add("Try again", () => bg({ type: "start", url: j.url, title: j.title }).then(refreshJobs));
+  if (j.state === "failed") add("Try again", () => bg({ type: "start", url: j.url, title: j.title, format: j.format }).then(refreshJobs));
   return li;
 }
 
@@ -141,8 +142,8 @@ async function refreshJobs() {
   refreshTimer = setTimeout(refreshJobs, active ? 1000 : 4000);
 }
 
-$("sendTab").addEventListener("click", async () => {
-  const reply = await bg({ type: "sendTab" });
+async function sendTab(format) {
+  const reply = await bg({ type: "sendTab", format });
   if (!reply.ok) notice(escapeHtml(reply.error || "Could not start"));
   else if (reply.choosing) {
     // The chooser is on the page; get out of its way.
@@ -151,7 +152,9 @@ $("sendTab").addEventListener("click", async () => {
     return;
   }
   refreshJobs();
-});
+}
+$("sendTab").addEventListener("click", () => sendTab("mp3"));
+$("sendTabVideo").addEventListener("click", () => sendTab("mp4"));
 
 $("openFolder").addEventListener("click", () => native({ cmd: "open" }));
 $("openApp").addEventListener("click", () => native({ cmd: "openApp" }));

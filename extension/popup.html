@@ -17,7 +17,7 @@
   <div id="notice" class="notice" hidden></div>
 
   <section>
-    <div class="label">Playback speed for the MP3</div>
+    <div class="label">Playback speed (MP3 and MP4)</div>
     <div id="speeds" class="segmented" role="radiogroup" aria-label="Playback speed"></div>
   </section>
 
@@ -40,7 +40,10 @@
   </section>
 
   <button id="sendTab" class="primary">Download MP3 of this tab</button>
-  <p class="hint">Or <b>middle-click</b> a Rumble or YouTube video or thumbnail,<br>including YouTube players embedded on other sites.</p>
+  <div class="hintrow">
+    <p class="hint">Or <b>middle-click</b> any video on Rumble, YouTube, X or Telegram (also embedded).</p>
+    <button id="sendTabVideo" class="secondary" title="Download the video itself as an MP4, with the same speed and volume boost (picture up to 720p)">Download MP4 video</button>
+  </div>
 
   <section>
     <div class="label">Recent downloads</div>

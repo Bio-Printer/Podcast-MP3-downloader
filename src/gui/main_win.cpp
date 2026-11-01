@@ -675,6 +675,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
         g.request = requestFromSettings(s, url);
         g.request.id = jobId;
         g.request.source = "extension";
+        g.request.format = normalizeFormat(argValue(args, "--format"));
     }
 
     WNDCLASSEXW wc{};
@@ -693,7 +694,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
     int sysDpi = GetDeviceCaps(dc, LOGPIXELSY);
     ReleaseDC(nullptr, dc);
     int w = MulDiv(g.jobMode ? 520 : 720, sysDpi, 96), h = MulDiv(g.jobMode ? 200 : 520, sysDpi, 96);
-    std::wstring title = g.jobMode ? L"Podcast MP3"
+    std::wstring title = g.jobMode ? (g.request.video() ? L"Podcast MP3 - video (MP4)" : L"Podcast MP3")
                                    : W(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME);
     int x = CW_USEDEFAULT, y = CW_USEDEFAULT;
     if (g.jobMode) {

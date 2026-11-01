@@ -37,6 +37,7 @@ std::string extensionVersionOnDisk();  // "version" + "version_name" of extensio
 
 // Starts a job in its own process (GUI window on Windows).
 bool launchJobProcess(const std::string& jobId, const std::string& url, double speed, int bitrate, double volume,
+                      const std::string& format,
                       std::string& err);
 
 // Runs "yt-dlp -U" and returns its output.

@@ -1,6 +1,6 @@
 // podcastmp3-host: command line tool and Edge native-messaging helper.
 //
-//   podcastmp3-host download <url> [--speed 1.5] [--bitrate 192] [--volume 1.25] [--out DIR] [--engine rubberband|atempo]
+//   podcastmp3-host download <url> [--speed 1.5] [--bitrate 192] [--volume 1.25] [--format mp3|mp4] [--out DIR] [--engine rubberband|atempo]
 //   podcastmp3-host info <url>
 //   podcastmp3-host register | unregister
 //   podcastmp3-host --version
@@ -50,7 +50,7 @@ static void usage() {
     out(std::string(PMP3_PRODUCT_NAME " helper v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME +
         "\n\n"
         "Usage:\n"
-        "  podcastmp3-host download <url> [--speed 1.5] [--bitrate 192] [--volume 1.25] [--out DIR] [--engine rubberband|atempo]\n"
+        "  podcastmp3-host download <url> [--speed 1.5] [--bitrate 192] [--volume 1.25] [--format mp3|mp4] [--out DIR] [--engine rubberband|atempo]\n"
         "  podcastmp3-host info <url>          show what would be downloaded\n"
         "  podcastmp3-host register            connect the helper to Edge/Chrome\n"
         "  podcastmp3-host unregister\n"
@@ -59,7 +59,7 @@ static void usage() {
 }
 
 struct Options {
-    std::string url, out, engine, jobId;
+    std::string url, out, engine, jobId, format;
     double speed = 0;
     int bitrate = 0;
     double volume = 0;
@@ -83,6 +83,8 @@ static bool parseOptions(const std::vector<std::string>& a, size_t start, Option
             o.out = v;
         else if (a[i] == "--engine" && next(v))
             o.engine = v;
+        else if (a[i] == "--format" && next(v))
+            o.format = v;
         else if (a[i] == "--job" && next(v))
             o.jobId = v;
         else if (a[i] == "--url" && next(v))
@@ -107,6 +109,7 @@ static JobRequest makeRequest(const Options& o) {
     normalizeSettings(s);
     JobRequest r = requestFromSettings(s, o.url);
     if (!o.jobId.empty()) r.id = o.jobId;
+    if (!o.format.empty()) r.format = normalizeFormat(o.format);
     return r;
 }
 

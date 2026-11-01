@@ -41,6 +41,9 @@ USING IT
   Plain links to posts are left alone (a post may be just text). For a
   post you see in the Telegram app, use "Copy Post Link" and open it in
   Edge. Only public posts and public channels work.
+- MP4 VIDEO instead of MP3: open the video's page and click the smaller
+  "Download MP4 video" button in the toolbar popup. Same speed and volume
+  boost; picture up to 720p; saved next to the MP3s as  ... (1.5x).mp4
 - Other ways: right-click > "Download MP3 of this video", the toolbar
   button's "Download MP3 of this tab", or Alt+Shift+M. On a page that only
   has an embedded player, "Download MP3 of this tab" finds the player; if

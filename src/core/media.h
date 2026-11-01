@@ -51,7 +51,9 @@ bool parseVideoInfo(const std::string& json, VideoInfo& info, std::string& err);
 // &ver=2&v=<id>) that the Edge extension fetched through Edge's connection.
 // Fills title/channel/date/duration/thumbnail/page and picks the media URL:
 // the audio-only file if Rumble offers one, else the smallest MP4, else HLS.
-bool parseRumbleEmbedJson(const std::string& json, VideoInfo& info, std::string& mediaUrl, std::string& err);
+// wantVideo: pick an MP4 with picture instead (the largest up to 720p).
+bool parseRumbleEmbedJson(const std::string& json, VideoInfo& info, std::string& mediaUrl, std::string& err,
+                          bool wantVideo = false);
 
 // Picks the best audio with the least video weight:
 //  1) an audio-only stream with the highest bitrate, otherwise
@@ -80,6 +82,11 @@ std::string tempoFilter(double speed, const std::string& engine);
 // louder peaks are held just below full scale instead of distorting.
 // "" when nothing needs changing.
 std::string audioFilter(double speed, const std::string& engine, double volume);
+// ffmpeg -vf for MP4 output: the picture sped up to match the sound. "" at 1x.
+std::string videoFilter(double speed);
+// yt-dlp format choice for MP4 output: picture up to 720p (H.264 preferred) plus the best sound.
+extern const char* const kVideoFormatSelector;
+extern const char* const kVideoFormatSort;
 
 // Adds (or replaces) a WOAS "official audio source" URL frame and a COMM
 // comment frame in the ID3v2.3/2.4 tag at the start of the file. ffmpeg

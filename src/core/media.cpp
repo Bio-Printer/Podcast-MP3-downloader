@@ -207,7 +207,8 @@ static std::string htmlUnescape(std::string s) {
     return s;
 }
 
-bool parseRumbleEmbedJson(const std::string& text, VideoInfo& info, std::string& mediaUrl, std::string& err) {
+bool parseRumbleEmbedJson(const std::string& text, VideoInfo& info, std::string& mediaUrl, std::string& err,
+                          bool wantVideo) {
     json j = json::parse(text, nullptr, false);
     if (!j.is_object()) {
         err = "not Rumble video data";
@@ -234,7 +235,20 @@ bool parseRumbleEmbedJson(const std::string& text, VideoInfo& info, std::string&
     };
     mediaUrl.clear();
     const json u = j.value("u", json::object()), ua = j.value("ua", json::object());
-    if (u.contains("audio")) mediaUrl = urlAt(u["audio"]);
+    if (wantVideo && ua.contains("mp4") && ua["mp4"].is_object()) {
+        // The largest picture up to 720p; if there is none, the smallest above.
+        int bestLow = 0, bestHigh = 1 << 30;
+        std::string low, high;
+        for (auto it = ua["mp4"].begin(); it != ua["mp4"].end(); ++it) {
+            int h = std::atoi(it.key().c_str());
+            std::string url = urlAt(it.value());
+            if (url.empty() || h <= 0) continue;
+            if (h <= 720 && h > bestLow) bestLow = h, low = url;
+            if (h > 720 && h < bestHigh) bestHigh = h, high = url;
+        }
+        mediaUrl = !low.empty() ? low : high;
+    }
+    if (!wantVideo && u.contains("audio")) mediaUrl = urlAt(u["audio"]);
     if (mediaUrl.empty() && ua.contains("mp4") && ua["mp4"].is_object()) {
         int best = 1 << 30;
         for (auto it = ua["mp4"].begin(); it != ua["mp4"].end(); ++it) {
@@ -405,6 +419,16 @@ std::string tempoFilter(double speed, const std::string& engine) {
         std::snprintf(buf, sizeof(buf), "atempo=%.4g", speed);
     else
         std::snprintf(buf, sizeof(buf), "rubberband=tempo=%.4g", speed);
+    return buf;
+}
+
+const char* const kVideoFormatSelector = "bv*+ba/b";
+const char* const kVideoFormatSort = "res:720,vcodec:h264,acodec:aac";
+
+std::string videoFilter(double speed) {
+    if (std::fabs(speed - 1.0) < 0.001) return "";
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "setpts=PTS/%.4g", speed);
     return buf;
 }
 

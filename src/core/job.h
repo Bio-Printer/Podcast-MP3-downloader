@@ -29,6 +29,8 @@ struct JobRequest {
     std::string tempoEngine = "rubberband";
     std::string fileNameTemplate = "{date} {channel} - {title}{speedtag}";
     std::string source = "app";  // "app", "extension", "cli"
+    std::string format = "mp3";  // "mp3" (audio) or "mp4" (video with the same speed/volume changes)
+    bool video() const { return format == "mp4"; }
 };
 
 struct JobStatus {
@@ -50,7 +52,11 @@ struct JobStatus {
     int64_t updatedEpoch = 0;
     std::string version;   // program version that ran the job
     std::string route;     // how it was fetched: "Edge", "yt-dlp", "yt-dlp (as browser)"
+    std::string format = "mp3";  // "mp3" or "mp4"
 };
+
+// "mp4" for anything that asks for video ("mp4", "video"), else "mp3".
+std::string normalizeFormat(const std::string& f);
 
 std::string jobStatusToJson(const JobStatus& s);
 bool jobStatusFromJson(const std::string& text, JobStatus& s);

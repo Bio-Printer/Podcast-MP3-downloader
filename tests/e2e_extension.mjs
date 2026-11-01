@@ -261,6 +261,30 @@ console.log("middle-click in embedded Telegram post ->", urls);
 if (JSON.stringify(urls) !== '["https://t.me/someone_else/777"]') fail("embedded Telegram post: middle-click did not send it");
 await context.unroute(/^https:\/\/(x\.com|t\.me|platform\.twitter\.com)\/|posts-news\.html/);
 
+// 6d. "Download MP4 video": the video itself, sped up, saved as an MP4.
+await page.goto(`${base}/v6test-episode-7.html`);
+await page.bringToFront();
+const mp4Reply = await popup.evaluate(() => new Promise((r) => chrome.runtime.sendMessage({ type: "sendTab", format: "mp4" }, r)));
+if (!mp4Reply.ok || mp4Reply.format !== "mp4") fail("MP4 button: job not started " + JSON.stringify(mp4Reply));
+let mp4 = null;
+for (let i = 0; i < 240 && !mp4; i++) {
+  const f = fs.existsSync(outDir) ? fs.readdirSync(outDir).filter((n) => n.endsWith(".mp4")) : [];
+  if (f.length) mp4 = f[0];
+  else await page.waitForTimeout(500);
+}
+if (!mp4) fail("no MP4 file");
+const probe = execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type:format=duration", "-of", "compact", path.join(outDir, mp4)]).toString();
+console.log("MP4:", mp4, "|", probe.replace(/\n/g, " "));
+if (!/codec_type=video/.test(probe) || !/codec_type=audio/.test(probe)) fail("MP4 lacks picture or sound");
+const dur = Number((/duration=([\d.]+)/.exec(probe) || [])[1]);
+if (!(Math.abs(dur - 15) < 0.5)) fail("MP4 at 2x should last 15 s, not " + dur);
+await popup.reload();
+await popup.waitForTimeout(2500);
+await popup.screenshot({ path: path.join(shots, "6-popup-mp4.png") });
+const mp4Line = await popup.locator("#jobs li").first().innerText();
+console.log("popup MP4 job:", mp4Line.replace(/\n/g, " | "));
+if (!/🎬/.test(mp4Line)) fail("popup does not mark the MP4 job");
+
 // A video page that stays open while the extension updates itself (step 8).
 await page.goto(`${base}/v6test-episode-7.html`);
 

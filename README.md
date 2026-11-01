@@ -27,6 +27,10 @@ speed and download date, and the source URL (`WOAS` and `TXXX:SOURCE_URL`).
 | X (Twitter) | the video inside a post (timeline, post page, posts embedded on other sites) | Links to posts are left alone (a post may be just text). Public posts only; X's login is not used |
 | Telegram | the video in a post on t.me (single post, channel view `t.me/s/...`, posts embedded on other sites) | Public channels only. The Telegram app and web.telegram.org are not supported; use "Copy link" on the post and open it in Edge |
 
+**MP4 video:** the popup's smaller "Download MP4 video" button saves the
+video itself (picture up to 720p, H.264 + AAC) with the same speed and volume
+changes, next to the MP3s. Command line: `podcastmp3-host download <url> --format mp4`.
+
 X and Telegram posts have no title, so the MP3 title is the first line of
 the post's text (links removed, at most 100 characters); the full text is
 kept in the MP3's comment tag.

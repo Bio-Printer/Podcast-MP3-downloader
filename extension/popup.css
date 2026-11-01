@@ -32,6 +32,12 @@ button.primary { width: 100%; padding: 9px; border: 0; border-radius: 7px; backg
                  font: inherit; font-weight: 600; cursor: pointer; }
 button.primary:disabled { opacity: .45; cursor: default; }
 .hint { color: var(--muted); margin: 6px 0 0; font-size: 12px; text-align: center; }
+.hintrow { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.hintrow .hint { flex: 1; margin: 0; text-align: left; }
+button.secondary { flex: none; padding: 7px 10px; border: 0; border-radius: 7px; background: var(--accent); color: var(--accent-fg);
+                   font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+button.secondary:hover { filter: brightness(1.08); }
+button.secondary:disabled { opacity: .45; cursor: default; }
 .jobs { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
 .jobs li { border-top: 1px solid var(--line); padding: 7px 0; }
 .jobs li.empty { color: var(--muted); border: 0; }

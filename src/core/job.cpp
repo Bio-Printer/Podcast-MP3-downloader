@@ -56,7 +56,8 @@ std::string jobStatusToJson(const JobStatus& s) {
               {"finished", s.finished},
               {"updated", s.updatedEpoch},
               {"version", s.version},
-              {"route", s.route}};
+              {"route", s.route},
+              {"format", s.format}};
     return j.dump(2);
 }
 
@@ -81,7 +82,13 @@ bool jobStatusFromJson(const std::string& text, JobStatus& s) {
     s.updatedEpoch = j.value("updated", (int64_t)0);
     s.version = j.value("version", "");
     s.route = j.value("route", "");
+    s.format = normalizeFormat(j.value("format", "mp3"));
     return !s.id.empty();
+}
+
+std::string normalizeFormat(const std::string& f) {
+    std::string t = toLower(trim(f));
+    return (t == "mp4" || t == "video") ? "mp4" : "mp3";
 }
 
 std::string newJobId() { return nowCompactString() + "-" + randomHex(6); }
@@ -141,6 +148,8 @@ JobRunner::JobRunner(JobRequest req, UpdateFn onUpdate, LogFn onLog)
     status_.bitrateKbps = req_.bitrateKbps;
     status_.volume = req_.volume;
     status_.version = PMP3_VERSION_FULL;
+    req_.format = normalizeFormat(req_.format);
+    status_.format = req_.format;
 }
 
 JobRunner::~JobRunner() = default;
@@ -274,7 +283,7 @@ JobStatus JobRunner::run() {
     double tRead = 0, tDownload = 0, tConvert = 0;
     status_.started = nowLocalString();
     log(std::string(PMP3_PRODUCT_NAME " v") + PMP3_VERSION_FULL + " - " PMP3_BUILDER_NAME " - job " + req_.id);
-    log("URL: " + req_.url + "  speed " + formatSpeed(req_.speed) + "x  " + std::to_string(req_.bitrateKbps) + " kbps  volume " + formatSpeed(req_.volume) + "x  output " + req_.outputDir);
+    log("URL: " + req_.url + "  " + (req_.video() ? "MP4 video" : "MP3 audio") + "  speed " + formatSpeed(req_.speed) + "x  " + std::to_string(req_.bitrateKbps) + " kbps  volume " + formatSpeed(req_.volume) + "x  output " + req_.outputDir);
 
     // Lets the browser extension cancel us by creating <id>.cancel.
     std::atomic<bool> watching{true};
@@ -390,7 +399,7 @@ JobStatus JobRunner::run() {
         if (readTextFile(jobRumbleInfoFile(req_.id), handed)) {
             fs::remove(jobRumbleInfoFile(req_.id), ec);
             std::string mediaUrl, perr;
-            if (parseRumbleEmbedJson(handed, info, mediaUrl, perr)) {
+            if (parseRumbleEmbedJson(handed, info, mediaUrl, perr, req_.video())) {
                 if (info.webpageUrl.empty()) info.webpageUrl = req_.url;
                 status_.title = info.title;
                 status_.channel = info.channel;
@@ -415,7 +424,8 @@ JobStatus JobRunner::run() {
                 if (ok && !media.empty()) {
                     direct = true;
                     status_.route = "Edge";
-                    log("Route: video info read by Edge, audio downloaded directly from Rumble's video server");
+                    log(std::string("Route: video info read by Edge, ") + (req_.video() ? "video" : "audio") +
+                        " downloaded directly from Rumble's video server");
                     coverSrc = info.thumbnail;
                 } else if (!cancelled_) {
                     log("Direct download failed (" + lastErrorLine(errText) + "); trying the normal way");
@@ -545,17 +555,26 @@ JobStatus JobRunner::run() {
         status_.title = info.title;
         status_.channel = info.channel;
         status_.duration = info.duration;
-        int fi = chooseFormat(info);
-        if (fi < 0) {
-            fail("No audio was found for this video.");
-            return status_;
-        }
-        const FormatInfo& fmt = info.formats[(size_t)fi];
         log("Title: " + info.title + " | Channel: " + info.channel + " | Duration: " + formatDuration(info.duration));
-        log("Chosen format " + fmt.id + " (" + fmt.ext + ", " +
-            (fmt.audioOnly() ? std::string("audio only") : std::to_string(fmt.height) + "p video") +
-            (fmt.abr > 0 ? ", audio " + std::to_string((int)fmt.abr) + " kbps" : std::string()) + ", " +
-            fmt.protocol + ")");
+        // MP3: one stream, chosen here (audio only if possible). MP4: yt-dlp
+        // picks picture (up to 720p) + sound and joins them.
+        std::vector<std::string> formatArgs;
+        if (req_.video()) {
+            formatArgs = {"-f", kVideoFormatSelector, "-S", kVideoFormatSort, "--merge-output-format", "mkv"};
+            log(std::string("Video format: ") + kVideoFormatSelector + " sorted by " + kVideoFormatSort);
+        } else {
+            int fi = chooseFormat(info);
+            if (fi < 0) {
+                fail("No audio was found for this video.");
+                return status_;
+            }
+            const FormatInfo& fmt = info.formats[(size_t)fi];
+            log("Chosen format " + fmt.id + " (" + fmt.ext + ", " +
+                (fmt.audioOnly() ? std::string("audio only") : std::to_string(fmt.height) + "p video") +
+                (fmt.abr > 0 ? ", audio " + std::to_string((int)fmt.abr) + " kbps" : std::string()) + ", " +
+                fmt.protocol + ")");
+            formatArgs = {"-f", fmt.id};
+        }
 
         // ---- 2. Download -------------------------------------------------
         status_.state = JobState::Downloading;
@@ -565,10 +584,11 @@ JobStatus JobRunner::run() {
 
         std::vector<std::string> dlArgs = {
             ytdlp, "--ignore-config", "--no-playlist", "--playlist-items", "1", "--newline", "--color", "never",
-            "-f", fmt.id, "--downloader", "m3u8:native", "--retries", "10",
+            "--downloader", "m3u8:native", "--retries", "10",
             "--fragment-retries", "10", "--no-mtime", "--write-thumbnail", "--progress-template", progressTemplate,
             "-o", pathToUtf8(tmp / "media.%(ext)s"), "-o", "thumbnail:" + pathToUtf8(tmp / "cover.%(ext)s"),
             "--load-info-json", pathToUtf8(infoFile)};
+        dlArgs.insert(dlArgs.begin() + 1, formatArgs.begin(), formatArgs.end());
         if (toPath(ffmpeg).is_absolute()) dlArgs.insert(dlArgs.begin() + 1, {"--ffmpeg-location", ffmpeg});
         if (impersonate) dlArgs.insert(dlArgs.begin() + 1, {"--impersonate", "chrome"});
         if (!deno.empty()) dlArgs.insert(dlArgs.begin() + 1, {"--js-runtimes", "deno:" + deno});
@@ -590,10 +610,11 @@ JobStatus JobRunner::run() {
         }
     }
 
-    // ---- 3. Convert to MP3 ------------------------------------------
+    // ---- 3. Convert to MP3 (or MP4) -----------------------------------
+    const std::string kind = req_.video() ? "MP4" : "MP3";
     status_.state = JobState::Converting;
     status_.percent = 70;
-    status_.message = "Converting to MP3 at " + formatSpeed(req_.speed) + "x...";
+    status_.message = "Converting to " + kind + " at " + formatSpeed(req_.speed) + "x...";
     update();
 
     fs::path metaFile = tmp / "tags.txt";
@@ -601,14 +622,21 @@ JobStatus JobRunner::run() {
         std::ofstream mf(metaFile, std::ios::binary | std::ios::trunc);
         mf << buildFfmetadata(buildTags(info, req_.speed, req_.volume));
     }
-    fs::path outTmp = tmp / "out.mp3";
-    if (info.duration <= 0) {
+    fs::path outTmp = tmp / (req_.video() ? "out.mp4" : "out.mp3");
+    bool sourceIsH264 = false;
+    if (info.duration <= 0 || req_.video()) {
         // Some pages do not report a duration; ask ffmpeg so progress works.
+        // (For MP4 also: is the picture already H.264, which can be kept as is at 1x?)
         std::string o, e;
         runCapture({ffmpeg, "-hide_banner", "-nostdin", "-i", pathToUtf8(media)}, o, e);
         double d = parseFfmpegDuration(e);
-        if (d > 0) info.duration = d;
+        if (d > 0 && info.duration <= 0) info.duration = d;
         status_.duration = info.duration;
+        sourceIsH264 = e.find("Video: h264") != std::string::npos;
+        if (req_.video() && e.find("Video: ") == std::string::npos) {
+            fail("This video has no picture to save (the site only offers its sound). Use the MP3 button instead.");
+            return status_;
+        }
     }
     const double outDuration = info.duration > 0 ? info.duration / req_.speed : 0;
 
@@ -619,11 +647,26 @@ JobStatus JobRunner::run() {
             a.push_back("-i");
             a.push_back(coverSrc);
         }
+        if (req_.video()) a.insert(a.end(), {"-map", "0:v:0"});
         a.insert(a.end(), {"-map", "0:a:0"});
         if (withCover) a.insert(a.end(), {"-map", "2:v:0"});
         a.insert(a.end(), {"-map_metadata", "1", "-map_chapters", "-1"});
         std::string filter = audioFilter(req_.speed, engine, req_.volume);
         if (!filter.empty()) a.insert(a.end(), {"-af", filter});
+        if (req_.video()) {
+            // The picture is sped up together with the sound. At 1x an H.264
+            // picture is kept as it is (fast, no quality loss).
+            std::string vf = videoFilter(req_.speed);
+            if (vf.empty() && sourceIsH264) {
+                a.insert(a.end(), {"-c:v", "copy"});
+            } else {
+                if (!vf.empty()) a.insert(a.end(), {"-vf", vf});
+                a.insert(a.end(), {"-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
+                                   "-fpsmax", "60"});
+            }
+            a.insert(a.end(), {"-c:a", "aac", "-b:a", std::to_string(req_.bitrateKbps) + "k", "-ac", "2",
+                               "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", pathToUtf8(outTmp)});
+        } else {
         a.insert(a.end(), {"-c:a", "libmp3lame", "-b:a", std::to_string(req_.bitrateKbps) + "k", "-ar", "44100",
                            "-ac", "2"});
         if (withCover)
@@ -633,13 +676,14 @@ JobStatus JobRunner::run() {
                                "comment=Cover (front)"});
         a.insert(a.end(), {"-id3v2_version", "3", "-write_id3v1", "1", "-progress", "pipe:1", "-nostats",
                            pathToUtf8(outTmp)});
+        }
         return runStep(
             a,
             [&](const std::string& l) {
                 double t = parseFfmpegOutTime(l);
                 if (t < 0) return;
                 if (outDuration > 0) status_.percent = 70 + std::min(1.0, t / outDuration) * 29;
-                status_.message = "Converting to MP3 at " + formatSpeed(req_.speed) + "x: " + formatDuration(t) +
+                status_.message = "Converting to " + kind + " at " + formatSpeed(req_.speed) + "x: " + formatDuration(t) +
                                   (outDuration > 0 ? " of " + formatDuration(outDuration) : std::string());
                 auto now = std::chrono::steady_clock::now();
                 if (now - lastWrite > std::chrono::milliseconds(300)) {
@@ -652,7 +696,7 @@ JobStatus JobRunner::run() {
 
     const auto tc = std::chrono::steady_clock::now();
     std::string engine = req_.tempoEngine;
-    bool withCover = !coverSrc.empty();
+    bool withCover = !coverSrc.empty() && !req_.video();  // (a video has its own picture)
     ok = convert(engine, withCover);
     if (!ok && !cancelled_ && engine == "rubberband" && errText.find("ubberband") != std::string::npos) {
         log("rubberband filter not available, retrying with atempo");
@@ -666,12 +710,13 @@ JobStatus JobRunner::run() {
     }
     tConvert = secondsSince(tc);
     if (!ok) {
-        fail("MP3 conversion failed. " + lastErrorLine(errText));
+        fail(kind + " conversion failed. " + lastErrorLine(errText));
         return status_;
     }
 
     std::string id3err;
-    if (!addId3Extras(outTmp, info.webpageUrl, buildTags(info, req_.speed, req_.volume).comment, id3err))
+    if (!req_.video() &&
+        !addId3Extras(outTmp, info.webpageUrl, buildTags(info, req_.speed, req_.volume).comment, id3err))
         log("Note: could not add source URL / comment frames: " + id3err);
 
     // ---- 4. Move into place -----------------------------------------
@@ -681,7 +726,7 @@ JobStatus JobRunner::run() {
         fail("Cannot create the output folder " + pathToUtf8(outDir) + ": " + ec.message());
         return status_;
     }
-    fs::path finalPath = uniquePath(outDir / toPath(buildFileName(req_.fileNameTemplate, info, req_.speed) + ".mp3"));
+    fs::path finalPath = uniquePath(outDir / toPath(buildFileName(req_.fileNameTemplate, info, req_.speed) + "." + req_.format));
     std::string mverr;
     if (!moveFile(outTmp, finalPath, mverr)) {
         fail("Cannot save " + pathToUtf8(finalPath) + ": " + mverr);

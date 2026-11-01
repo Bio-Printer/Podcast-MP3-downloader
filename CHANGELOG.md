@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.18
+
+- New "Download MP4 video" button in the popup (next to the middle-click
+  hint): saves the video itself as an MP4 instead of an MP3, with the same
+  playback speed (picture and sound sped up together, pitch kept natural)
+  and volume boost. Picture up to 720p (H.264), sound AAC at the chosen
+  quality. At 1x an H.264 picture is kept as it is (fast, no quality loss).
+- Works for every supported site, including Rumble's route through Edge
+  (which then fetches the 720p MP4 instead of the audio-only file).
+- The MP4 goes to the same folder as the MP3s, with the same name pattern.
+  The popup marks MP4 jobs with 🎬; notifications say "MP4 video ready".
+- The video chooser (pages with several videos) also works for MP4.
+- Command line: podcastmp3-host download <url> --format mp4
+
 ## 0.1.17
 
 - X (Twitter) and Telegram support. Middle-click the video in a post on

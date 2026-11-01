@@ -230,6 +230,22 @@ static void testRumbleEmbed() {
     CHECK(parseRumbleEmbedJson(R"({"title":"t","ua":{"mp4":{"720":{"url":"https://c/720.mp4"},"240":{"url":"https://c/240.mp4"}}}})",
                                info, url, err));
     CHECK_EQ(url, std::string("https://c/240.mp4"));
+    // MP4 (video) wanted: the largest picture up to 720p, never the audio-only file.
+    const char* withVideo = R"({"title":"t","u":{"audio":{"url":"https://c/a.aac"},"hls":{"url":"https://c/h.m3u8"}},
+      "ua":{"mp4":{"1080":{"url":"https://c/1080.mp4"},"720":{"url":"https://c/720.mp4"},"480":{"url":"https://c/480.mp4"}}}})";
+    CHECK(parseRumbleEmbedJson(withVideo, info, url, err, true));
+    CHECK_EQ(url, std::string("https://c/720.mp4"));
+    CHECK(parseRumbleEmbedJson(withVideo, info, url, err, false));
+    CHECK_EQ(url, std::string("https://c/a.aac"));
+    CHECK(parseRumbleEmbedJson(R"({"title":"t","ua":{"mp4":{"1080":{"url":"https://c/1080.mp4"}}}})", info, url, err, true));
+    CHECK_EQ(url, std::string("https://c/1080.mp4"));
+    CHECK(parseRumbleEmbedJson(sample, info, url, err, true));  // only HLS besides the audio
+    CHECK_EQ(url, std::string("https://rumble.com/hls-vod/5e_G1c920x8/playlist.m3u8"));
+    CHECK_EQ(videoFilter(1.0), std::string(""));
+    CHECK_EQ(videoFilter(1.5), std::string("setpts=PTS/1.5"));
+    CHECK_EQ(normalizeFormat("MP4"), std::string("mp4"));
+    CHECK_EQ(normalizeFormat(""), std::string("mp3"));
+    CHECK_EQ(normalizeFormat("wav"), std::string("mp3"));
     CHECK(!parseRumbleEmbedJson(R"({"title":"t","live":1,"u":{"audio":{"url":"x"}}})", info, url, err));
     CHECK(!parseRumbleEmbedJson(R"({"title":"t"})", info, url, err));
     CHECK(!parseRumbleEmbedJson("<html>", info, url, err));
